@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Misión Casa Andina · Grupo 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Exo+2:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: presentación-juego para proyector, clara y didáctica; un copiloto astronauta apoya a quien expone.
+   IDEA: la consola de una estación orbital; cada área del modelo es un sector y cada conexión, un cable de energía.
+   PICTURE: tablero estelar por área con módulos de colores; la PK dispara un cable que se clava en la FK.
+   COLOUR and TYPE: noche espacial #060a1c fija; un color por área; oro para PK y acciones. Orbitron + Exo 2.
+   LAYOUT: lienzo 16:9 de 1600x900 escalado; título arriba, tablero + copiloto a la izquierda, panel de la historia a la derecha. */
+:root{color-scheme:dark;--bg:#060a1c;--panel:#0c1330;--panel2:#121b40;--line:#243263;--ink:#eef2ff;--mute:#a7b2da;--gold:#ffd24a;--ok:#6ff0a0;--bad:#ff5d6c;--ubi:#3fd0f5}
+:root[data-theme=light],:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%;margin:0;background:#02040c;overflow:hidden;color:var(--ink);font:20px/1.45 "Exo 2",system-ui,sans-serif}
+h1,h2,h3{font-family:Orbitron,sans-serif;margin:0;line-height:1.08;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#frame{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform:translate(-50%,-50%) scale(var(--k,1));background:radial-gradient(1000px 520px at 88% -12%,#1d2c74aa,transparent 60%),radial-gradient(800px 480px at -6% 108%,#5b1f5c66,transparent 60%),var(--bg);overflow:hidden}
+#sky{position:absolute;inset:0;width:1600px;height:900px;pointer-events:none}
+.tw{animation:tw 3s ease-in-out infinite alternate}@keyframes tw{to{opacity:.12}}
+.fh{position:absolute;left:36px;right:36px;top:26px;height:70px;display:flex;align-items:center;gap:20px}
+.sec{flex:none;font:700 15px Orbitron;color:#071026;background:var(--sk,var(--gold));border-radius:30px;padding:6px 16px}
+.fh h1{font-size:38px;font-weight:800;flex:1}
+.fh .r{flex:none;display:flex;gap:18px;font-size:18px;color:var(--mute)}
+.fh .r b{font:800 22px Orbitron;color:var(--ink);margin-left:6px}
+.main{position:absolute;left:36px;right:36px;top:110px;height:724px;display:grid;grid-template-columns:1104px 400px;gap:24px}
+.main.wide{grid-template-columns:1528px}.main.wide .rail{display:none}
+.col{display:grid;grid-template-rows:588px 124px;gap:12px}
+.rail{display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+#boardBox{position:relative;height:588px}
+.bwrap{position:absolute;left:0;top:0;width:1140px;height:590px;transform:scale(.968);transform-origin:0 0}
+.board{position:relative;width:1140px;height:590px;border-radius:14px;background:radial-gradient(500px 300px at 30% 40%,#1a2b7a33,transparent 70%),radial-gradient(400px 260px at 85% 75%,#7a1a5a26,transparent 70%),#070c22;border:1px solid var(--line);overflow:hidden}
+.board svg{position:absolute;inset:0;width:1140px;height:590px}
+#wires{pointer-events:none;z-index:3}
+.bnote{position:absolute;right:14px;bottom:8px;font-size:13px;color:var(--mute);z-index:4}
+.card{position:absolute;width:190px;z-index:2;background:#0d1533f0;border:1.5px solid color-mix(in srgb,var(--k) 65%,transparent);border-radius:10px;padding-bottom:6px;box-shadow:0 10px 26px #0009,0 0 22px color-mix(in srgb,var(--k) 22%,transparent)}
+.card.ghost{border-style:dashed;background:#0b1129e0;box-shadow:none}
+.card.ghost .ch{background:transparent;color:var(--k);border-bottom:1.5px dashed color-mix(in srgb,var(--k) 60%,transparent)}
+.card.ghost .ch small{margin-left:auto;font-weight:600;font-size:10.5px;opacity:.85}
+.ch{height:30px;display:flex;align-items:center;gap:6px;padding:0 9px;background:var(--k);color:#071026;font:800 11.5px "Exo 2",system-ui,sans-serif;letter-spacing:0;border-radius:8px 8px 0 0;white-space:nowrap;overflow:hidden}
+.row{display:flex;align-items:center;gap:7px;height:24px;width:100%;padding:0 8px;font:600 13.5px "Exo 2",system-ui,sans-serif;color:#dfe5ff;background:none;border:0;text-align:left;white-space:nowrap}
+button.row{cursor:crosshair}
+.row:hover{background:#ffffff16}
+.b{flex:none;width:28px;text-align:center;font:800 9.5px Orbitron;border-radius:4px;padding:2px 0}
+.pk .b{background:var(--gold);color:#2a1d00}
+.fk .b{background:#ffffff12;border:1px solid #ffffff40;color:#d6dcff}
+.row.linked .b{box-shadow:0 0 8px var(--k)}
+.row.armed{background:#ffd24a30;box-shadow:inset 3px 0 var(--gold)}
+.row.hint{animation:hint .8s ease-in-out 4}
+.row.bad{animation:shake .45s;background:#ff5d6c40}
+@keyframes hint{50%{background:#ffffff40;box-shadow:inset 0 0 0 2px var(--gold)}}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.core{fill:none;stroke-width:3;stroke-linecap:round}
+.glow{fill:none;stroke-width:9;opacity:.25;stroke-linecap:round}
+.marks path,.marks circle{fill:none;stroke-width:2.6;stroke-linecap:round}
+.marks circle{fill:#070c22}
+.marks text{font:800 12.5px Orbitron;paint-order:stroke;stroke:#070c22;stroke-width:4}
+.aim{fill:none;stroke:var(--gold);stroke-width:2.5;stroke-dasharray:6 7;animation:dash .5s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-13}}
+.miss{fill:none;stroke:var(--bad);stroke-width:3;stroke-dasharray:4 6;animation:fade .7s forwards}
+@keyframes fade{to{opacity:0}}
+.ring{fill:none;stroke-width:3;animation:ring .6s ease-out forwards}
+@keyframes ring{from{r:4;opacity:1}to{r:34;opacity:0}}
+/* mapa */
+.chip{position:absolute;width:190px;height:30px;z-index:2;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:8px;background:#0d1533;border:1.5px solid color-mix(in srgb,var(--k) 70%,transparent);font:800 11.5px "Exo 2",system-ui,sans-serif;color:var(--ink);white-space:nowrap;overflow:hidden;cursor:pointer;transition:opacity .3s}
+.chip i{flex:none;width:9px;height:9px;border-radius:50%;background:var(--k)}
+.chip.sel{background:var(--k);color:#071026}.chip.sel i{background:#071026}
+.chip.off{opacity:.12}
+.medge{fill:none;stroke-width:1.6;opacity:.45;transition:opacity .3s}
+.medge.hi{opacity:1;stroke-width:3}.medge.lo{opacity:.07}.medge.off{opacity:.03}
+.alab{position:absolute;z-index:2;font:800 13px Orbitron;color:var(--k)}
+#html{height:588px;overflow:hidden}
+.dock{display:grid;grid-template-columns:96px minmax(0,1fr);gap:18px;align-items:center;background:var(--panel);border:1.5px solid var(--ubi);border-radius:18px;padding:8px 20px 8px 12px}
+.dock[data-m=ok]{border-color:var(--ok)}.dock[data-m=bad]{border-color:var(--bad)}
+.astro{width:96px;height:96px;animation:float 4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-5px)}}
+.led{fill:var(--ubi)}.dock[data-m=ok] .led{fill:var(--ok)}.dock[data-m=bad] .led{fill:var(--bad)}
+.dock b.nm{font:700 14px Orbitron;color:var(--ubi)}.dock[data-m=ok] b.nm{color:var(--ok)}.dock[data-m=bad] b.nm{color:var(--bad)}
+#say{margin:2px 0 0;font-size:19px;line-height:1.35}
+#expo{margin:4px 0 0;font-size:17px;color:#ffe59a}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.tag{display:inline-block;font:700 13px Orbitron;color:#071026;background:var(--gold);border-radius:20px;padding:3px 11px}
+.box h2{font-size:19px;margin:8px 0 8px;line-height:1.2;overflow-wrap:anywhere}
+.box p{margin:0;font-size:17px}
+.persona{display:grid;grid-template-columns:54px minmax(0,1fr);gap:12px;align-items:center}
+.av{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font:800 24px Orbitron;color:#071026;background:radial-gradient(circle at 35% 30%,#fff9,var(--k) 45%)}
+.persona b{font:700 15px Orbitron;color:var(--k)}
+.mrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mdots{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}.mdots i{width:9px;height:9px;border-radius:50%;background:#ffffff25}.mdots i.d{background:var(--ok)}.mdots i.c{background:var(--gold)}
+.seq{display:grid;grid-template-columns:104px minmax(0,1fr);gap:6px 10px;margin:0;font-size:16.5px}
+.seq dt{font:700 11.5px Orbitron;color:var(--mute);padding-top:4px}
+.seq dd{margin:0}
+.seq dd.act{color:#ffe59a}
+.seq dd.why{color:var(--ok)}.seq dd.lock{color:var(--mute);font-style:italic}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.badges span{font:700 13px "Exo 2";border-radius:8px;padding:4px 9px;background:#ffffff10;border:1px solid #ffffff25}
+.badges .k{font:800 14px Orbitron;color:#071026;background:var(--gold);border:0}
+.go{margin-top:12px;min-height:48px;padding:0 22px;border:0;border-radius:12px;background:var(--gold);color:#241900;font:800 16px Orbitron}
+.go.full{width:100%}
+.go:hover{filter:brightness(1.08)}
+.cq p{margin:0 0 10px;font-weight:700}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.opts button{min-height:52px;border-radius:12px;border:1.5px solid #ffffff30;background:var(--panel2);font:800 18px Orbitron}
+.opts button:hover:not(:disabled){border-color:var(--gold)}
+.opts button:disabled{opacity:.3;cursor:not-allowed}
+.no{animation:shake .45s;border-color:var(--bad)!important}
+.ctrl{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px}
+.ctrl button{min-height:46px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);font-weight:700;font-size:15.5px;line-height:1.15}
+.ctrl button.pri{background:var(--gold);color:#241900;border:0}
+.ctrl button:hover{border-color:var(--mute)}
+.chk{display:flex;align-items:center;gap:10px;font-size:16px;color:var(--mute)}
+.chk input{width:20px;height:20px;accent-color:var(--gold);margin:0}
+.recap{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:6px;font-size:15.5px}
+.recap li{display:flex;gap:8px}.recap li b{flex:none;color:var(--ok);font-family:Orbitron;font-size:12px;padding-top:3px;width:26px}
+.legend{display:grid;gap:7px;font-size:15px;color:var(--mute)}
+.legend span{display:flex;align-items:center;gap:10px}
+.legend svg{width:44px;height:18px;flex:none}
+details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"";flex:none;width:0;height:0;border-left:9px solid var(--gold);border-top:6px solid transparent;border-bottom:6px solid transparent;transition:transform .2s}
+details[open]>summary::before{transform:rotate(90deg)}
+.cats>summary{font:700 16px Orbitron;min-height:34px}
+.cat{margin:4px 0 0 4px;border-left:2px solid var(--line);padding-left:10px}
+.cat>summary{min-height:36px;font-weight:700;font-size:16.5px}
+.cat input{width:20px;height:20px;accent-color:var(--gold);margin:0}
+.sw{width:14px;height:14px;border-radius:4px;flex:none}
+.cat ul{margin:0 0 6px 44px;padding:0;list-style:none;font-size:14px;color:var(--mute)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stats div{background:var(--panel2);border-radius:12px;padding:10px 12px}
+.stats b{display:block;font:800 28px Orbitron;color:var(--gold)}
+.stats span{font-size:14.5px;color:var(--mute)}
+.ff{position:absolute;left:36px;right:36px;bottom:14px;height:46px;display:flex;align-items:center;gap:12px}
+.ff>button{min-height:42px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-weight:700;font-size:16px}
+.ff>button:hover{border-color:var(--mute)}
+.ff .nav{background:var(--panel2)}
+.ff #next{background:var(--gold);color:#241900;border:0}
+.dots{display:flex;gap:7px;align-items:center;flex:1}
+.dot{width:14px;height:14px;padding:0;border-radius:50%;border:0;background:#ffffff26}
+.dot.on{background:var(--gold);width:34px;border-radius:8px}
+.dot.v{background:#6ff0a066}
+.snd{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--mute)}
+.snd input{width:18px;height:18px;accent-color:var(--gold)}
+#notes{position:absolute;left:36px;right:36px;bottom:72px;height:560px;z-index:40;background:#0a1130;border:2px solid var(--gold);border-radius:20px;padding:24px 30px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:30px;box-shadow:0 -20px 60px #000a}
+#notes[hidden]{display:none}
+#notes h3{font-size:19px;color:var(--gold);margin-bottom:10px}
+#notes ul{margin:0;padding-left:24px;font-size:19px;display:grid;gap:6px}
+.nmeta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.nmeta span{font-size:15px;background:#ffffff14;border-radius:20px;padding:4px 12px}
+.key{background:#ffd24a1a;border-left:4px solid var(--gold);padding:12px 16px;border-radius:8px;font-size:19px;margin-bottom:14px}
+.qa{background:#3fd0f514;border-left:4px solid var(--ubi);padding:12px 16px;border-radius:8px;font-size:17.5px}
+.qa b{color:var(--ubi)}
+.xclose{position:absolute;right:16px;top:14px;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);font-weight:700}
+/* diapositivas */
+.cover{display:grid;grid-template-columns:minmax(0,1fr) 640px;height:100%;align-items:center;gap:30px}
+.kick{font-size:22px;color:var(--mute);margin:0 0 14px}
+.big{font-size:88px;font-weight:800}.big span{color:var(--gold);display:block}
+.lead{font-size:29px;margin:22px 0 10px;max-width:800px}
+.meta{font-size:19px;color:var(--mute);margin:0}
+.intro{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:16px;height:100%}
+.intro .lead2{font-size:24px;margin:0}
+.areas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.ac{background:var(--panel);border:1.5px solid color-mix(in srgb,var(--k) 55%,transparent);border-radius:18px;padding:16px 18px;display:grid;grid-template-columns:62px minmax(0,1fr);gap:2px 16px;align-items:center;text-align:left}
+.ac:hover{border-color:var(--k)}
+.ac i{grid-row:span 3;width:62px;height:62px;border-radius:50%;display:grid;place-items:center;font:800 24px Orbitron;font-style:normal;color:#071026;background:radial-gradient(circle at 32% 30%,#fff9,var(--k) 42%,#0007 100%);box-shadow:0 0 26px color-mix(in srgb,var(--k) 45%,transparent)}
+.ac h3{font-size:19px;color:var(--k)}.ac p{margin:0;font-size:17px}.ac small{font-size:15px;color:var(--mute)}
+.flow{display:flex;align-items:stretch;gap:0;background:#ffd24a12;border:1.5px solid var(--gold);border-radius:18px;padding:12px 16px}
+.flow>b{font:700 14px Orbitron;color:var(--gold);align-self:center;margin-right:16px;max-width:170px}
+.flow span{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;font-size:19px;font-weight:700;padding:6px 10px;background:var(--panel);border-radius:12px;position:relative}
+.flow span+span{margin-left:26px}
+.flow span+span::before{content:"";position:absolute;left:-19px;top:50%;margin-top:-7px;border-left:12px solid var(--gold);border-top:7px solid transparent;border-bottom:7px solid transparent}
+.gl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;height:100%;align-content:center}
+.gc{text-align:left;background:var(--panel);border:1.5px solid var(--line);border-radius:20px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;min-height:268px}
+.gc:hover,.gc.sel{border-color:var(--gold)}
+.gc h3{font-size:22px;color:var(--gold)}
+.gc svg{width:100%;height:70px}
+.gc p{margin:0;font-size:19px}.gc small{margin-top:auto;font-size:17px;color:#ffe59a}
+.norm{display:grid;grid-template-columns:minmax(0,1fr) 500px;gap:26px;height:100%}
+.tabs{display:flex;gap:10px;margin-bottom:12px}
+.tabs button{min-height:46px;padding:0 18px;border-radius:12px;border:1.5px solid var(--line);background:var(--panel);font:800 16px Orbitron}
+.tabs button.on{border-color:var(--gold);color:var(--gold)}
+.tabs button.ok::after{content:" ✓";color:var(--ok)}
+.norm h2{font-size:24px;margin:0 0 12px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:19px;background:var(--panel);border-radius:14px;overflow:hidden}
+th{font:700 14px Orbitron;text-align:left;color:var(--ubi);padding:11px 13px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:11px 13px;border-bottom:1px solid var(--line);white-space:nowrap}
+.hit{background:#ff5d6c26;color:#ffb3ba;text-decoration:line-through;text-decoration-color:var(--bad)}
+.note{font-size:15px;color:var(--mute);margin:8px 0 14px}
+.nq{font-weight:700;font-size:22px;margin:0 0 12px}
+.nopts{display:flex;flex-wrap:wrap;gap:10px}
+.nopts button{min-height:52px;padding:0 20px;border-radius:12px;border:1.5px solid #ffffff30;background:var(--panel2);font-weight:700;font-size:19px}
+.nopts button.ok{border-color:var(--ok);color:var(--ok)}
+.nopts button:disabled{cursor:default;opacity:.45}.nopts button.ok:disabled{opacity:1}
+.nr{display:flex;flex-direction:column;gap:14px}
+.nr .box p{font-size:19px;margin-top:10px}
+.fix.locked{opacity:.55;border-style:dashed}
+.fix.okb{border-color:var(--ok)}
+code{display:block;font:600 16px/1.4 ui-monospace,Consolas,monospace;background:#ffffff0f;border-radius:8px;padding:8px 10px;margin-top:8px;overflow-wrap:anywhere;color:#cfe9ff}
+.end{display:grid;grid-template-columns:minmax(0,1fr) 520px;gap:40px;height:100%;align-items:center}
+.ticks{list-style:none;margin:0;padding:0;display:grid;gap:14px;font-size:23px}
+.ticks li{display:flex;gap:14px}.ticks li::before{content:"";flex:none;width:12px;height:12px;margin-top:11px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold)}
+.qbig{text-align:center}.fh .r .who{font-size:14px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--gold)}.fh .r .clk{display:inline-flex;gap:6px;align-items:baseline;font-size:15px;color:var(--mute)}.fh .r .clk b{font-size:22px;color:#eef2ff;margin:0}.fh .r .clk.near b{color:var(--gold)}.fh .r .clk.over b{color:#ff6b6b}.end.solo{grid-template-columns:1fr;max-width:1180px;margin:0 auto}.end.solo .ticks{font-size:27px;gap:22px}.end .sign{margin-top:30px;font-size:20px;color:var(--mute)}
+.qbig h2{font-size:72px;color:var(--gold);margin:0 0 8px}
+.qbig p{font-size:22px;margin:0 0 20px;color:var(--mute)}
+.nots{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:14px;height:100%}
+.ng{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.np{text-align:left;background:var(--panel);border:1.5px solid var(--line);border-radius:20px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.np:hover,.np.sel{border-color:var(--gold)}
+.np h3{font-size:22px;color:var(--gold)}.np small{font-size:14.5px;color:var(--mute)}
+.np svg{width:100%;height:150px;font-family:"Exo 2",system-ui,sans-serif}
+.np p{margin:0;font-size:17.5px}.np .use{margin-top:auto;font-size:16px;color:#ffe59a}
+.wire.dim{opacity:.3}.dimnote{margin:8px 0 0;font-size:14.5px;color:var(--mute)}.recap li.kx{color:#fff;font-weight:700}.ng.two{grid-template-columns:repeat(2,minmax(0,1fr))}.ng.two .np svg{height:130px}.nots .cg .gc{min-height:0;padding:10px 16px;gap:4px}.nots .cg .gc svg{height:52px}.nots .cg .gc h3{font-size:18px}.nots .cg .gc p{font-size:15.5px}.nots{grid-template-rows:minmax(0,1fr) auto auto}.qa+.qa{margin-top:8px;font-size:15.5px;padding:8px 14px}#notes>div{min-height:0;overflow:auto}
+.trick{background:#ffd24a14;border:1.5px solid var(--gold);border-radius:18px;padding:14px 20px;font-size:19px}.trick b{color:var(--gold)}
+.chen{width:100%;height:100%;font-family:"Exo 2",system-ui,sans-serif;background:#070c22;border:1px solid var(--line);border-radius:14px}
+.chen .ct{fill:#eef2ff;font-size:15px;font-weight:800}.chen .cr{fill:#eef2ff;font-size:15px;font-weight:700}.chen .ca{fill:#dfe5ff;font-size:14px;font-weight:600}.chen .cc2{fill:#ffd24a;font-size:18px;font-weight:800}
+.chen .sym{cursor:pointer;transition:opacity .2s}
+.chen:has(.hl) .sym:not(.hl){opacity:.35}
+.chen .sym.hl :is(rect,ellipse,polygon,path){stroke:#ffd24a!important;filter:drop-shadow(0 0 6px #ffd24a)}
+.chen .sym.hl text{fill:#ffd24a}
+.symlist{display:grid;gap:4px;padding:10px 12px}
+.symlist button{display:flex;align-items:center;gap:12px;min-height:36px;padding:2px 8px;border:1px solid transparent;border-radius:10px;background:none;font-size:16px;font-weight:700;text-align:left}
+.symlist button:hover,.symlist button.on{border-color:var(--gold);background:#ffd24a14}
+.symlist svg{width:44px;height:26px;flex:none;font-family:"Exo 2",system-ui,sans-serif}
+.crow{display:grid;grid-template-rows:auto auto;gap:14px;height:100%;align-content:center}
+.cg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.cg3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.crow .gc{min-height:0;padding:14px 18px;gap:6px}
+.crow .gc svg{height:64px}.crow .gc h3{font-size:20px}.crow .gc p{font-size:17.5px}
+.mm{font-size:15px;color:var(--mute)}
+.pfk .b,.pfkb{background:var(--gold);color:#2a1d00;border:0;box-shadow:inset -6px 0 #4a8cff}
+.row.nul .b{border-style:dashed}.row.nul{color:#c3cbea}
+.ch small.more{margin-left:auto;font:700 11px "Exo 2",system-ui,sans-serif;background:#07102633;border-radius:6px;padding:1px 6px}
+.ch[data-head]{cursor:help}
+.uq{font-style:normal;font-size:10.5px;color:var(--gold);margin-left:4px}
+.kb.pfkb{font:800 9.5px Orbitron;padding:3px 5px;border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="frame">
+  <svg id="sky" viewBox="0 0 1600 900" aria-hidden="true"></svg>
+  <header class="fh"><span class="sec" id="sec"></span><h1 id="title"></h1><div class="r"><span><b id="num" style="margin:0"></b></span></div></header>
+  <main class="main" id="main">
+    <div class="col">
+      <div id="stageBox">
+        <div id="boardBox" hidden><div class="bwrap"><div class="board" id="board">
+          <svg id="stars" viewBox="0 0 1140 590" aria-hidden="true"></svg>
+          <div id="cards"></div>
+          <svg id="wires" viewBox="0 0 1140 590" aria-hidden="true"></svg>
+          <span class="bnote" id="bnote"></span>
+        </div></div></div>
+        <div id="html"></div>
+      </div>
+      <div class="dock" id="dock">
+        <svg class="astro" viewBox="0 0 80 80" aria-hidden="true">
+          <defs><linearGradient id="vz" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b3f9e"/><stop offset="1" stop-color="#0b1240"/></linearGradient></defs>
+          <circle cx="40" cy="80" r="30" fill="#d9e0f2"/><rect x="30" y="58" width="20" height="10" rx="3" fill="#b9c3de"/>
+          <line x1="40" y1="10" x2="40" y2="3" stroke="#b9c3de" stroke-width="2"/><circle class="led" cx="40" cy="4" r="3.2"/>
+          <circle cx="40" cy="35" r="26" fill="#eef2fb" stroke="#b9c3de" stroke-width="3"/>
+          <rect x="21" y="22" width="38" height="27" rx="13.5" fill="url(#vz)"/>
+          <path d="M27 31q5-6 13-5" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".75"/>
+          <circle cx="50" cy="41" r="2" fill="#fff" opacity=".5"/><rect x="31" y="66" width="18" height="9" rx="2" fill="#3fd0f5"/>
+        </svg>
+        <div><b class="nm">Copiloto NOVA</b><p id="say" aria-hidden="true"></p><p id="expo" hidden></p><span class="sr" id="live" aria-live="polite"></span></div>
+      </div>
+    </div>
+    <aside class="rail" id="rail"></aside>
+  </main>
+  <div id="notes" hidden></div>
+  <footer class="ff">
+    <button class="nav" id="prev" aria-label="Diapositiva anterior">‹ Anterior</button>
+    <div class="dots" id="dots"></div>
+    <button class="nav" id="next">Siguiente ›</button>
+    <button id="bNotes">Apoyo (G)</button>
+    <button id="bFull">Pantalla completa</button>
+    <button id="bReset">Reiniciar</button>
+    <label class="snd"><input type="checkbox" id="snd" checked> Sonido</label>
+  </footer>
+</div>
+
+<script>
+{
+const NS='http://www.w3.org/2000/svg',BW=1140,BH=590,CW=190,HH=30,RH=24;
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $=id=>document.getElementById(id);
+
+/* ===== modelo V5.4 ===== */
+const AR={
+ A:{n:'Hoteles y habitaciones',c:'#3fd0f5',who:'María',scene:'María quiere viajar a Arequipa y reservar una habitación matrimonial.',close:'Estas 12 tablas trabajan juntas para que el cliente pueda buscar un destino, encontrar hoteles, conocer sus habitaciones, revisar los servicios y observar las fotografías antes de reservar.',q:'¿Por qué OFERTA_SERVICIO_HOTEL es una tabla aparte?',a:'Porque un hotel ofrece varios servicios y un servicio existe en varios hoteles (N:M). Además registra si el servicio tiene costo adicional en ese hotel.'},
+ B:{n:'Reservas y tarifas',c:'#ffc847',who:'María',scene:'María ya eligió el hotel y ahora quiere consultar el precio y reservar una habitación para dos noches.',close:'Estas seis tablas permiten consultar precios por fecha, comprobar disponibilidad y registrar una reserva con una o varias selecciones de habitaciones. Las conexiones con HOTEL y HABITACION indican dónde se alojará.',q:'¿Para qué sirve SELECCION_HABITACION?',a:'Porque una sola reserva puede contener varias selecciones de habitaciones; cada una registra su tarifa, adultos, niños y subtotal.'},
+ C:{n:'Pagos',c:'#6ff0a0',who:'María',scene:'María ya registró su reserva. Ahora quiere saber cómo pagarla.',close:'METODO_PAGO indica cómo se realiza el pago y PAGO registra la operación. La conexión con RESERVA permite saber exactamente qué reserva se está pagando.',q:'¿Por qué METODO_PAGO es una tabla separada?',a:'Para no repetir la descripción del método en cada operación: muchas personas pagan con tarjeta, pero cada pago tiene su propio monto, fecha y estado.'},
+ D:{n:'Promociones y paquetes',c:'#ff7aa8',who:'Carlos',scene:'Carlos quiere aprovechar una promoción bancaria para reservar un hotel.',close:'Estas seis tablas administran promociones, identifican los hoteles donde se aplican y registran paquetes con diferentes beneficios. Las conexiones con RESERVA indican qué oferta eligió cada cliente.',q:'¿Por qué la relación entre PROMOCION y RESERVA es opcional?',a:'Porque un cliente también puede reservar sin utilizar ningún descuento; en ese caso id_promocion queda vacío.'},
+ E:{n:'Casa Andina Life',c:'#b48cff',who:'Lucía',scene:'Lucía se registra en Casa Andina Life para acumular puntos por sus estadías.',close:'Estas cinco tablas registran a los socios Life, identifican sus niveles, controlan sus movimientos de puntos y sus canjes, y establecen qué beneficios corresponden a cada nivel.',q:'¿Por qué CLIENTE y MEMBRESIA_LIFE es una relación 1:1?',a:'Porque en nuestro diseño un cliente puede tener como máximo una membresía Life; así se evita que una misma persona tenga varias membresías.'},
+ F:{n:'Restaurantes',c:'#ff9f5a',who:'Pedro',scene:'Pedro quiere reservar una mesa para cuatro personas en un restaurante de Casa Andina.',close:'Estas cinco tablas permiten elegir un restaurante, consultar sus horarios, elegir una zona, indicar el tipo de servicio y registrar la reserva con fecha, hora y cantidad de personas.',q:'¿Por qué id_cliente es opcional en RESERVA_RESTAURANTE?',a:'Porque el modelo permite reservar una mesa solo con datos de contacto, aunque la persona no tenga una cuenta registrada.'}
+};
+const T={
+ DESTINO:['A',2,[['id_destino','pk'],['nombre_destino']]],
+ CATEGORIA_HOTEL:['A',2,[['id_categoria_hotel','pk'],['nombre_categoria'],['descripcion','','n']]],
+ HOTEL:['A',4,[['id_hotel','pk'],['id_destino','fk'],['id_categoria_hotel','fk'],['nombre_hotel'],['direccion'],['telefono'],['correo_contacto'],['hora_check_in'],['hora_check_out'],['descripcion']]],
+ TIPO_HABITACION:['A',3,[['id_tipo_habitacion','pk'],['id_hotel','fk'],['nombre_tipo'],['capacidad_adultos'],['capacidad_ninos'],['superficie_m2'],['descripcion']]],
+ HABITACION:['A',3,[['id_habitacion','pk'],['id_tipo_habitacion','fk'],['numero_habitacion'],['estado_operativo']]],
+ SERVICIO:['A',2,[['id_servicio','pk'],['nombre_servicio'],['descripcion']]],
+ OFERTA_SERVICIO_HOTEL:['A',3,[['id_hotel','pfk'],['id_servicio','pfk'],['tiene_costo_adicional']]],
+ EQUIPAMIENTO:['A',2,[['id_equipamiento','pk'],['nombre_equipamiento'],['descripcion']]],
+ ASIGNACION_EQUIPAMIENTO:['A',2,[['id_tipo_habitacion','pfk'],['id_equipamiento','pfk']]],
+ TIPO_CAMA:['A',2,[['id_tipo_cama','pk'],['nombre_tipo_cama'],['ancho_cm'],['largo_cm']]],
+ COMPOSICION_CAMAS:['A',3,[['id_tipo_habitacion','pfk'],['id_tipo_cama','pfk'],['cantidad']]],
+ FOTO_TIPO_HABITACION:['A',3,[['id_foto_tipo_habitacion','pk'],['id_tipo_habitacion','fk'],['url_imagen'],['descripcion'],['orden_visualizacion']]],
+ TARIFA:['B',3,[['id_tarifa','pk'],['id_tipo_habitacion','fk'],['nombre_tarifa'],['condiciones_cancelacion'],['modalidad_pago'],['moneda']]],
+ TARIFA_DIARIA:['B',4,[['id_tarifa_diaria','pk'],['id_tarifa','fk'],['fecha'],['precio']]],
+ DISPONIBILIDAD:['B',4,[['id_disponibilidad','pk'],['id_tipo_habitacion','fk'],['fecha'],['cantidad_disponible']]],
+ CLIENTE:['B',3,[['id_cliente','pk'],['nombres'],['apellidos'],['tipo_documento'],['numero_documento'],['correo'],['telefono']]],
+ RESERVA:['B',7,[['id_reserva','pk'],['id_cliente','fk'],['id_hotel','fk'],['id_promocion','fk','n'],['id_paquete','fk','n'],['fecha_entrada'],['fecha_salida'],['fecha_reserva'],['estado_reserva'],['subtotal_alojamiento'],['monto_descuento'],['monto_cargo_servicio'],['monto_impuestos'],['monto_total'],['moneda'],['comentarios_adicionales','','n'],['es_agente_viajes'],['numero_file_agente','','n']]],
+ SELECCION_HABITACION:['B',7,[['id_detalle','pk'],['id_reserva','fk'],['id_tarifa','fk'],['id_habitacion','fk','n'],['cantidad_adultos'],['cantidad_ninos'],['subtotal']]],
+ METODO_PAGO:['C',2,[['id_metodo_pago','pk'],['nombre_metodo'],['descripcion'],['requiere_procesamiento_online'],['estado']]],
+ PAGO:['C',6,[['id_pago','pk'],['id_reserva','fk'],['id_metodo_pago','fk'],['fecha_pago','','n'],['monto_pagado'],['estado_pago'],['moneda'],['referencia_transaccion','','n']]],
+ ENTIDAD_FINANCIERA:['D',2,[['id_entidad_financiera','pk'],['nombre_entidad'],['descripcion']]],
+ PROMOCION:['D',4,[['id_promocion','pk'],['id_entidad_financiera','fk','n'],['nombre_promocion'],['porcentaje_descuento','','n'],['descripcion'],['codigo_promocional','','n'],['fecha_inicio'],['fecha_fin'],['condiciones'],['estado_promocion']]],
+ APLICACION_PROMOCION:['D',2,[['id_promocion','pfk'],['id_hotel','pfk']]],
+ PAQUETE:['D',3,[['id_paquete','pk'],['id_hotel','fk'],['nombre_paquete'],['descripcion'],['precio'],['moneda'],['fecha_inicio'],['fecha_fin']]],
+ BENEFICIO:['D',2,[['id_beneficio','pk'],['nombre_beneficio'],['descripcion'],['categoria_beneficio']]],
+ INCLUSION_BENEFICIO:['D',4,[['id_paquete','pfk'],['id_beneficio','pfk'],['cantidad'],['descripcion_condicion']]],
+ MEMBRESIA_LIFE:['E',4,[['id_membresia','pk'],['id_cliente','fk','u'],['id_nivel','fk'],['numero_membresia'],['fecha_inscripcion'],['estado_membresia']]],
+ NIVEL_MEMBRESIA:['E',4,[['id_nivel','pk'],['nombre_nivel'],['noches_minimas'],['puntos_por_usd'],['noches_maximas','','n']]],
+ MOVIMIENTO_PUNTOS:['E',5,[['id_movimiento','pk'],['id_membresia','fk'],['id_reserva','fk','n'],['id_canje','fk','n'],['cantidad_puntos'],['fecha_movimiento'],['tipo_movimiento'],['descripcion'],['referencia_origen','','n']]],
+ CANJE_PUNTOS:['E',4,[['id_canje','pk'],['id_membresia','fk'],['id_reserva','fk','n'],['puntos_utilizados'],['fecha_canje'],['estado_canje']]],
+ OTORGAMIENTO_BENEFICIO:['E',3,[['id_nivel','pfk'],['id_beneficio','pfk'],['condiciones_aplicacion']]],
+ RESTAURANTE:['F',3,[['id_restaurante','pk'],['id_hotel','fk'],['nombre_restaurante'],['descripcion'],['tipo_cocina'],['telefono'],['estado_restaurante']]],
+ HORARIO_RESTAURANTE:['F',4,[['id_horario','pk'],['id_restaurante','fk'],['dia_semana'],['hora_apertura'],['hora_cierre']]],
+ ZONA_RESTAURANTE:['F',3,[['id_zona','pk'],['id_restaurante','fk'],['nombre_zona'],['descripcion'],['capacidad_maxima'],['estado_zona']]],
+ TIPO_RESERVA_RESTAURANTE:['F',4,[['id_tipo_reserva','pk'],['id_restaurante','fk'],['nombre_tipo'],['precio_referencial'],['descripcion'],['moneda'],['estado_tipo']]],
+ RESERVA_RESTAURANTE:['F',7,[['id_reserva_restaurante','pk'],['id_zona','fk'],['id_tipo_reserva','fk'],['id_cliente','fk','n'],['fecha_visita'],['hora_visita'],['cantidad_personas'],['fecha_reserva'],['nombre_contacto'],['correo_contacto'],['telefono_contacto','','n'],['observaciones','','n'],['estado_reserva']]]
+};
+/* posiciones por área; tercer valor = filas que se muestran en tablas de otra área */
+const LAY={
+ A:{DESTINO:[10,20],CATEGORIA_HOTEL:[10,130],OFERTA_SERVICIO_HOTEL:[10,330],HOTEL:[240,90],SERVICIO:[240,420],TIPO_HABITACION:[470,210],HABITACION:[700,20],ASIGNACION_EQUIPAMIENTO:[700,150],COMPOSICION_CAMAS:[700,260],FOTO_TIPO_HABITACION:[700,400],EQUIPAMIENTO:[930,150],TIPO_CAMA:[930,280]},
+ B:{TIPO_HABITACION:[10,150,['id_tipo_habitacion']],DISPONIBILIDAD:[10,300],TARIFA:[240,150],HABITACION:[240,380,['id_habitacion']],TARIFA_DIARIA:[470,10],SELECCION_HABITACION:[470,190],RESERVA:[700,150],CLIENTE:[930,40],HOTEL:[930,300,['id_hotel']]},
+ C:{METODO_PAGO:[240,90],RESERVA:[240,380,['id_reserva']],PAGO:[700,170]},
+ D:{ENTIDAD_FINANCIERA:[10,40],PROMOCION:[240,40],APLICACION_PROMOCION:[470,40],RESERVA:[470,220,['id_reserva','id_promocion','id_paquete']],HOTEL:[700,20,['id_hotel']],INCLUSION_BENEFICIO:[700,330],PAQUETE:[930,110],BENEFICIO:[930,400]},
+ E:{CLIENTE:[10,30,['id_cliente']],NIVEL_MEMBRESIA:[10,200],BENEFICIO:[10,470,['id_beneficio']],MEMBRESIA_LIFE:[240,30],OTORGAMIENTO_BENEFICIO:[240,380],CANJE_PUNTOS:[470,250],MOVIMIENTO_PUNTOS:[700,40],RESERVA:[930,260,['id_reserva']]},
+ F:{HOTEL:[10,200,['id_hotel']],RESTAURANTE:[240,190],HORARIO_RESTAURANTE:[470,20],ZONA_RESTAURANTE:[470,210],TIPO_RESERVA_RESTAURANTE:[470,380],RESERVA_RESTAURANTE:[700,200],CLIENTE:[930,330,['id_cliente']]}
+};
+const C=[
+ {n:1,ar:'A',s:[['DESTINO','HOTEL','id_destino']],k:'1:N',act:'María ingresa a la página y selecciona Arequipa.',why:'Un destino puede tener varios hoteles, y el sistema necesita mostrar únicamente los que corresponden a la búsqueda.'},
+ {n:2,ar:'A',s:[['CATEGORIA_HOTEL','HOTEL','id_categoria_hotel']],k:'1:N',act:'María encuentra varios hoteles y quiere conocer sus categorías.',why:'Cada hotel tiene una categoría, pero una misma categoría puede corresponder a varios hoteles.'},
+ {n:3,key:1,ar:'A',s:[['HOTEL','TIPO_HABITACION','id_hotel']],k:'1:N',act:'María elige un hotel y quiere ver las habitaciones disponibles.',why:'Un hotel puede ofrecer varios tipos de habitación (matrimonial, doble, suite); así se muestran solo los del hotel elegido.'},
+ {n:4,ar:'A',s:[['TIPO_HABITACION','HABITACION','id_tipo_habitacion']],k:'1:N',act:'María selecciona una habitación matrimonial.',why:'«Matrimonial» es un tipo; HABITACION guarda las unidades físicas (201, 202, 203) que pertenecen a ese tipo.'},
+ {n:5,key:1,ar:'A',br:'OFERTA_SERVICIO_HOTEL',s:[['HOTEL','OFERTA_SERVICIO_HOTEL','id_hotel'],['SERVICIO','OFERTA_SERVICIO_HOTEL','id_servicio']],k:'N:M',act:'María quiere saber si el hotel ofrece estacionamiento y desayuno.',why:'Un hotel ofrece varios servicios y un mismo servicio existe en varios hoteles. La tabla intermedia también registra si el servicio tiene costo adicional.'},
+ {n:6,ar:'A',br:'ASIGNACION_EQUIPAMIENTO',s:[['TIPO_HABITACION','ASIGNACION_EQUIPAMIENTO','id_tipo_habitacion'],['EQUIPAMIENTO','ASIGNACION_EQUIPAMIENTO','id_equipamiento']],k:'N:M',act:'María quiere comprobar si la habitación tiene televisor, minibar o aire acondicionado.',why:'Un tipo de habitación tiene varios equipamientos y un mismo equipamiento, como el televisor, está en varios tipos.'},
+ {n:7,ar:'A',br:'COMPOSICION_CAMAS',s:[['TIPO_HABITACION','COMPOSICION_CAMAS','id_tipo_habitacion'],['TIPO_CAMA','COMPOSICION_CAMAS','id_tipo_cama']],k:'N:M',act:'María cambia de opinión y busca una habitación con dos camas individuales.',why:'Hay que saber qué tipos de cama tiene cada tipo de habitación y en qué cantidad; COMPOSICION_CAMAS registra esa cantidad.'},
+ {n:8,ar:'A',s:[['TIPO_HABITACION','FOTO_TIPO_HABITACION','id_tipo_habitacion']],k:'1:N',act:'Antes de reservar, María quiere ver fotografías.',why:'Un tipo de habitación puede tener varias imágenes, y no deben mezclarse con las de otros tipos.'},
+ {n:9,ar:'B',s:[['TIPO_HABITACION','TARIFA','id_tipo_habitacion']],k:'1:N',act:'María elige la matrimonial y encuentra diferentes opciones de precio.',why:'Un mismo tipo de habitación puede tener varias tarifas: una con cancelación flexible y otra con condiciones más restrictivas.'},
+ {n:10,ar:'B',s:[['TARIFA','TARIFA_DIARIA','id_tarifa']],k:'1:N',act:'María nota que el precio cambia según el día.',why:'Una tarifa puede tener precios distintos por fecha, por ejemplo S/ 220 un lunes y S/ 280 un sábado.'},
+ {n:11,ar:'B',s:[['TIPO_HABITACION','DISPONIBILIDAD','id_tipo_habitacion']],k:'1:N',act:'María quiere reservar del 10 al 12 de diciembre.',why:'El sistema necesita saber cuántas habitaciones de ese tipo están disponibles en cada fecha.'},
+ {n:12,key:1,ar:'B',s:[['CLIENTE','RESERVA','id_cliente']],k:'1:N',act:'María decide continuar e ingresa sus datos personales.',why:'Un cliente puede reservar varias veces sin repetir sus datos: Arequipa en diciembre y Cusco en enero quedan asociadas al mismo CLIENTE.'},
+ {n:13,ar:'B',s:[['HOTEL','RESERVA','id_hotel']],k:'1:N',act:'El sistema necesita saber en qué hotel se alojará María.',why:'Un hotel recibe muchas reservas, pero cada reserva corresponde a un solo establecimiento.'},
+ {n:14,key:1,ar:'B',br:'SELECCION_HABITACION',s:[['RESERVA','SELECCION_HABITACION','id_reserva'],['TARIFA','SELECCION_HABITACION','id_tarifa']],k:'N:M',act:'María reserva dos habitaciones: una matrimonial para ella y una doble para sus familiares.',why:'Una sola reserva puede contener varias selecciones. SELECCION_HABITACION registra además adultos, niños y subtotal.'},
+ {n:15,ar:'B',opt:1,s:[['HABITACION','SELECCION_HABITACION','id_habitacion']],k:'1:N',act:'María ya reservó, pero el hotel aún no le asigna el número de habitación.',why:'Indica qué habitación física se asignó. Es opcional: la selección existe aunque todavía no se sepa si será la 201 o la 202.'},
+ {n:16,ar:'C',s:[['METODO_PAGO','PAGO','id_metodo_pago']],k:'1:N',act:'María elige pagar con tarjeta.',why:'METODO_PAGO guarda las formas de pago y PAGO cada operación con su monto, fecha y estado, sin repetir la descripción del método.'},
+ {n:17,key:1,ar:'C',s:[['RESERVA','PAGO','id_reserva']],k:'1:N',act:'Hay que saber a qué reserva corresponde el pago de María.',why:'Una reserva puede tener varios pagos: un adelanto de S/ 100 y después el saldo.'},
+ {n:18,ar:'D',opt:1,s:[['ENTIDAD_FINANCIERA','PROMOCION','id_entidad_financiera']],k:'1:N',act:'Carlos encuentra una promoción asociada a un banco.',why:'Una entidad financiera puede participar en varias promociones. Es opcional: también hay promociones sin banco.'},
+ {n:19,ar:'D',br:'APLICACION_PROMOCION',s:[['PROMOCION','APLICACION_PROMOCION','id_promocion'],['HOTEL','APLICACION_PROMOCION','id_hotel']],k:'N:M',act:'Carlos quiere saber en qué hoteles puede usar el descuento.',why:'Una promoción se aplica en varios hoteles y un hotel participa en varias promociones, no necesariamente en todas.'},
+ {n:20,key:1,ar:'D',opt:1,s:[['PROMOCION','RESERVA','id_promocion']],k:'1:N',act:'Carlos elige la promoción y continúa con su reserva.',why:'Hay que registrar qué promoción se usó. Es opcional: también se puede reservar sin descuento.'},
+ {n:21,ar:'D',s:[['HOTEL','PAQUETE','id_hotel']],k:'1:N',act:'Carlos encuentra un paquete con alojamiento y beneficios.',why:'Cada hotel puede ofrecer varios paquetes comerciales, por ejemplo uno romántico y otro familiar.'},
+ {n:22,ar:'D',br:'INCLUSION_BENEFICIO',s:[['PAQUETE','INCLUSION_BENEFICIO','id_paquete'],['BENEFICIO','INCLUSION_BENEFICIO','id_beneficio']],k:'N:M',act:'Carlos revisa qué incluye el paquete romántico.',why:'Un paquete incluye varios beneficios y un beneficio, como un desayuno especial, forma parte de varios paquetes. Se registran cantidad y condiciones.'},
+ {n:23,ar:'D',opt:1,s:[['PAQUETE','RESERVA','id_paquete']],k:'1:N',act:'Carlos decide contratar ese paquete.',why:'Hay que saber qué paquete se eligió. Es opcional: muchas reservas se hacen sin paquete.'},
+ {n:24,key:1,ar:'E',s:[['CLIENTE','MEMBRESIA_LIFE','id_cliente']],k:'1:1',act:'Lucía, que ya es cliente, se inscribe en el programa Life.',why:'Cada membresía pertenece a un cliente, y un cliente puede tener como máximo una membresía Life.'},
+ {n:25,ar:'E',s:[['NIVEL_MEMBRESIA','MEMBRESIA_LIFE','id_nivel']],k:'1:N',act:'Al inscribirse, el sistema identifica el nivel de Lucía.',why:'Varios socios comparten un mismo nivel, pero cada membresía tiene uno asignado. NIVEL guarda las noches requeridas y los puntos por dólar.'},
+ {n:26,ar:'E',s:[['MEMBRESIA_LIFE','MOVIMIENTO_PUNTOS','id_membresia']],k:'1:N',act:'Lucía realiza una estadía y obtiene puntos.',why:'Una membresía registra muchos movimientos en el tiempo: 100 puntos en una estadía y 150 en la siguiente.'},
+ {n:27,ar:'E',opt:1,s:[['RESERVA','MOVIMIENTO_PUNTOS','id_reserva']],k:'1:N',act:'Los 100 puntos de Lucía provienen de una reserva específica.',why:'Identifica qué reserva originó el movimiento. Es opcional: hay movimientos por otros motivos.'},
+ {n:28,ar:'E',s:[['MEMBRESIA_LIFE','CANJE_PUNTOS','id_membresia']],k:'1:N',act:'Después de acumular puntos, Lucía decide usarlos.',why:'Una misma membresía puede hacer varios canjes: en diciembre y meses después.'},
+ {n:29,ar:'E',opt:1,s:[['CANJE_PUNTOS','MOVIMIENTO_PUNTOS','id_canje']],k:'1:N',act:'Lucía canjea 200 puntos.',why:'Relaciona el canje con el movimiento de salida de puntos que lo refleja. Es opcional: id_canje admite NULL, porque los puntos ganados por una estadía no provienen de un canje.'},
+ {n:30,ar:'E',opt:1,s:[['RESERVA','CANJE_PUNTOS','id_reserva']],k:'1:N',act:'Lucía usa sus puntos para obtener un beneficio en una reserva.',why:'Identifica a qué reserva se vinculó el canje, cuando corresponda. Es opcional.'},
+ {n:31,ar:'E',br:'OTORGAMIENTO_BENEFICIO',s:[['NIVEL_MEMBRESIA','OTORGAMIENTO_BENEFICIO','id_nivel'],['BENEFICIO','OTORGAMIENTO_BENEFICIO','id_beneficio']],k:'N:M',act:'Lucía quiere conocer los beneficios de su nivel Life.',why:'Un nivel ofrece varios beneficios y un beneficio, como la salida tardía, corresponde a varios niveles con distintas condiciones.'},
+ {n:32,key:1,ar:'F',s:[['HOTEL','RESTAURANTE','id_hotel']],k:'1:N',act:'Pedro entra a la sección de restaurantes y elige uno.',why:'Un hotel puede tener uno o varios restaurantes, y hay que saber a qué establecimiento pertenece cada uno.'},
+ {n:33,ar:'F',s:[['RESTAURANTE','HORARIO_RESTAURANTE','id_restaurante']],k:'1:N',act:'Pedro quiere saber si atienden el domingo por la mañana.',why:'Un restaurante puede tener horarios distintos según el día de la semana.'},
+ {n:34,ar:'F',s:[['RESTAURANTE','ZONA_RESTAURANTE','id_restaurante']],k:'1:N',act:'Pedro quiere sentarse en la terraza.',why:'Un restaurante tiene varios espacios: salón principal, terraza o zona privada.'},
+ {n:35,ar:'F',s:[['RESTAURANTE','TIPO_RESERVA_RESTAURANTE','id_restaurante']],k:'1:N',act:'Pedro ve modalidades como desayuno buffet o servicio a la carta.',why:'Un restaurante ofrece varios tipos de reserva, cada uno con sus características y precio referencial.'},
+ {n:36,ar:'F',o:'ZONA_RESTAURANTE y TIPO_RESERVA_RESTAURANTE',r:'RESERVA_RESTAURANTE',s:[['ZONA_RESTAURANTE','RESERVA_RESTAURANTE','id_zona'],['TIPO_RESERVA_RESTAURANTE','RESERVA_RESTAURANTE','id_tipo_reserva']],k:'1:N',act:'Pedro elige la terraza, el servicio a la carta, cuatro personas y una fecha.',why:'El sistema necesita conocer la zona y la modalidad elegidas; RESERVA_RESTAURANTE registra fecha, hora, personas y contacto.'},
+ {n:37,ar:'F',opt:1,s:[['CLIENTE','RESERVA_RESTAURANTE','id_cliente']],k:'1:N',act:'Pedro ya está registrado como cliente.',why:'Asocia la reserva a su cuenta. Es opcional: también se puede reservar solo con datos de contacto.'}
+];
+const ORIG=c=>c.o||c.s[0][0], REL=c=>c.r||(c.br?c.s[1][0]:c.s[0][1]);
+const VIA=c=>c.br?'la tabla intermedia '+c.br:c.s.map(x=>x[2]).join(' e ');
+const FRASE=c=>`${ORIG(c)} se conecta con ${REL(c)} mediante ${VIA(c)}: relación ${c.k}${c.opt?' opcional':''}.`;
+const NQ=[
+ {fn:'1FN',t:'RESERVA_PLANA: varias habitaciones en una celda',cols:['id_reserva','cliente','habitaciones_elegidas'],rows:[['R-001','María','Matrimonial, Doble'],['R-002','Carlos','Suite']],q:'¿Qué columna rompe la Primera Forma Normal?',a:'habitaciones_elegidas',o:{id_reserva:'id_reserva guarda un solo valor por fila.',cliente:'cliente tiene un dato por celda. Busca la celda con varios valores separados por comas.'},rule:'Cada celda guarda un solo valor atómico. No se permiten listas ni grupos repetitivos.',fix:'<p>Cada habitación elegida pasa a ser una fila:</p><code>SELECCION_HABITACION(id_detalle, id_reserva, id_tarifa, id_habitacion, cantidad_adultos, cantidad_ninos, subtotal)</code>',ok:'«Matrimonial, Doble» es una lista. Por eso existe SELECCION_HABITACION: una fila por cada habitación seleccionada dentro de la reserva.',ex:'La 1FN exige valores atómicos: una celda, un dato.',hint:'Pista: mira la celda que tiene comas.'},
+ {fn:'2FN',t:'SELECCION_HABITACION, versión inicial con clave compuesta (id_reserva + id_tarifa)',cols:['id_reserva','id_tarifa','cantidad_adultos','condiciones_cancelacion'],rows:[['R-001','T-10','2','Cancelación flexible'],['R-007','T-10','1','Cancelación flexible']],q:'¿Qué atributo depende solo de una parte de la clave?',a:'condiciones_cancelacion',o:{cantidad_adultos:'cantidad_adultos depende de la reserva y de la tarifa a la vez: necesita la clave completa.',id_reserva:'id_reserva es parte de la clave, no un atributo que dependa de ella.'},rule:'Estar en 1FN y que cada atributo no clave dependa de la clave completa, no solo de una parte.',fix:'<p>Las condiciones se quedan en TARIFA; la selección solo guarda la referencia:</p><code>TARIFA(id_tarifa, id_tipo_habitacion, nombre_tarifa, condiciones_cancelacion, …)</code><code>SELECCION_HABITACION(id_detalle, id_reserva, id_tarifa, …, subtotal)</code>',ok:'condiciones_cancelacion depende solo de id_tarifa: es una dependencia parcial. Por eso se guarda en TARIFA.',ex:'La 2FN elimina dependencias parciales.',hint:'Pista: ¿qué dato podrías conocer sabiendo solo id_tarifa?'},
+ {fn:'3FN',t:'HOTEL con un dato de más',cols:['id_hotel','nombre_hotel','id_destino','nombre_destino'],rows:[['H-01','CA Select Arequipa','D-04','Arequipa'],['H-02','CA Standard Arequipa','D-04','Arequipa']],q:'¿Qué atributo crea una dependencia transitiva?',a:'nombre_destino',o:{nombre_hotel:'nombre_hotel depende directamente de id_hotel: es correcto.',id_destino:'id_destino es la FK que conecta con DESTINO; no sobra.'},rule:'Estar en 2FN y que ningún atributo no clave dependa de otro atributo no clave.',fix:'<p>El nombre del destino se queda solo en DESTINO:</p><code>HOTEL(id_hotel, id_destino, id_categoria_hotel, nombre_hotel, …)</code><code>DESTINO(id_destino, nombre_destino)</code>',ok:'id_hotel → id_destino → nombre_destino: dependencia transitiva. «Arequipa» se repite; nombre_destino se guarda solo en DESTINO.',ex:'La 3FN elimina dependencias transitivas.',hint:'Pista: ¿qué dato depende de id_destino y no directamente de id_hotel?'}
+];
+
+/* ===== estado ===== */
+let cur=0,pts=0,errs=0,reto=false,visited=new Set([0]),onA={A:1,B:1,C:1,D:1,E:1,F:1};
+let st,ns,area=null,mapSel=null;
+function fresh(){st={sd:{},cd:{},armed:null,busy:false,tries:0,wrong:new Set()};ns={i:0,solved:NQ.map(()=>0),wrong:NQ.map(()=>new Set())}}
+fresh();
+const tAr=n=>T[n][0], col=n=>AR[tAr(n)].c;
+const pkOf=n=>(T[n][2].find(r=>r[1]==='pk')||[''])[0];
+let DISP={};
+const rowY=(n,a)=>LAY[area][n][1]+HH+DISP[n].findIndex(r=>r[0]===a)*RH+RH/2;
+const sd=c=>st.sd[c.n]||0;
+const isDone=c=>sd(c)>=c.s.length&&st.cd[c.n];
+const conns=ar=>C.filter(c=>c.ar===ar);
+const keys=ar=>conns(ar).filter(c=>c.key),KN=C.filter(c=>c.key).length;
+function preDone(ar){conns(ar).filter(c=>!c.key).forEach(c=>{st.sd[c.n]=c.s.length;st.cd[c.n]=1})}
+const curConn=()=>keys(area).find(c=>!isDone(c));
+const curStep=c=>!c?null:sd(c)<c.s.length?{t:'connect',s:c.s[sd(c)]}:!st.cd[c.n]?{t:'card'}:null;
+
+/* ===== sonido y copiloto ===== */
+let ac;
+function beep(f1,f2,d){if(!$('snd').checked)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(.09,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
+const sLaser=()=>beep(1300,160,.4),sOk=()=>beep(520,1040,.18),sBad=()=>beep(220,80,.32);
+let tw;
+function say(msg,ex='',m='info'){
+  clearInterval(tw);$('dock').dataset.m=m;
+  $('expo').hidden=!ex;$('expo').innerHTML=ex?'<b>Idea clave:</b> «'+ex+'»':'';
+  $('live').textContent=msg+(ex?' Idea clave: '+ex:'');
+  const el=$('say');if(RM){el.textContent=msg;return}
+  let i=0;el.textContent='';tw=setInterval(()=>{i+=2;el.textContent=msg.slice(0,i);if(i>=msg.length)clearInterval(tw)},13);
+}
+
+/* ===== cielo ===== */
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const starField=(w,h,n)=>Array.from({length:n},(_,i)=>`<circle cx="${rnd(0,w).toFixed(0)}" cy="${rnd(0,h).toFixed(0)}" r="${rnd(.3,1.6).toFixed(2)}" fill="#fff" opacity="${rnd(.2,.85).toFixed(2)}"${i%6===0?` class="tw" style="animation-delay:${rnd(0,3).toFixed(1)}s"`:''}/>`).join('');
+$('sky').innerHTML=starField(1600,900,220);
+$('stars').innerHTML=starField(BW,BH,150);
+const WDEF='<defs><filter id="gl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter></defs><path id="aim" class="aim" d=""/>';
+
+/* ===== tablero por área ===== */
+function renderArea(ar){
+  area=ar;DISP={};$('wires').innerHTML=WDEF;
+  $('cards').innerHTML=Object.entries(LAY[ar]).map(([n,[x,y,g]])=>{
+    const ghost=!!g,all=T[n][2],rows=ghost?all.filter(r=>g.includes(r[0])):all.slice(0,T[n][1]),more=all.length-T[n][1];DISP[n]=rows;
+    return`<div class="card${ghost?' ghost':''}" data-n="${n}" style="left:${x}px;top:${y}px;--k:${col(n)}"><div class="ch" data-head="${n}">${n}${ghost?`<small>Área ${tAr(n)}</small>`:more>0?`<small class="more">+${more}</small>`:''}</div>${rows.map(([a,k,f])=>k?`<button class="row ${k}${f==='n'?' nul':''}" data-e="${n}" data-a="${a}" data-k="${k==='pfk'?'fk':k}" title="${f==='n'?'Puede ser NULL':''}" aria-label="${k.toUpperCase()} ${a} de ${n}"><span class="b">${k==='pfk'?'PFK':k.toUpperCase()}</span>${a}${f==='u'?' <i class="uq">único</i>':''}</button>`:`<div class="row${f==='n'?' nul':''}" data-e="${n}" data-a="${a}" data-k=""><span class="b"></span>${a}</div>`).join('')}</div>`}).join('');
+  $('bnote').textContent='Notación: pata de gallo. +N: atributos no mostrados (clic en el título para verlos). FK punteada: admite NULL. Borde punteado: tabla de otra área.';
+  conns(ar).sort((a,b)=>(a.key||0)-(b.key||0)).forEach(c=>{for(let i=0;i<sd(c);i++)drawWire(c,i,false,null,!c.key)});
+}
+const rowEl=(e,a)=>document.querySelector(`#cards .row[data-e="${e}"][data-a="${a}"]`);
+function flash(el,c,ms){if(!el)return;el.classList.remove(c);void el.offsetWidth;el.classList.add(c);setTimeout(()=>el.classList.remove(c),ms)}
+function geom(pe,pa,ce,ca){
+  const P=LAY[area][pe],Q=LAY[area][ce];let ps,cs;
+  if(Q[0]>P[0]+5){ps=1;cs=-1}else if(Q[0]<P[0]-5){ps=-1;cs=1}else{ps=cs=P[0]<100||P[0]>=800?1:-1}
+  const o={px:P[0]+(ps>0?CW:0),py:rowY(pe,pa),cx:Q[0]+(cs>0?CW:0),cy:rowY(ce,ca),ps,cs,same:ps===cs};
+  o.dx=o.same?32:Math.max(30,Math.abs(o.cx-o.px)/2);return o;
+}
+const pathD=o=>`M${o.px},${o.py} C${o.px+o.ps*o.dx},${o.py} ${o.cx+o.cs*o.dx},${o.cy} ${o.cx},${o.cy}`;
+function marks(o,clr,c){
+  const{px,py,cx,cy,ps,cs}=o,one=c.k==='1:1',opt=c.opt;
+  const parent=opt?`M${px+ps*7},${py-7}V${py+7}`:`M${px+ps*7},${py-7}V${py+7}M${px+ps*12},${py-7}V${py+7}`;
+  const pc=opt?`<circle cx="${px+ps*17}" cy="${py}" r="4.5" stroke="${clr}"/>`:'';
+  const child=one?`M${cx+cs*7},${cy-7}V${cy+7}`:`M${cx},${cy-8}L${cx+cs*15},${cy}M${cx},${cy}L${cx+cs*15},${cy}M${cx},${cy+8}L${cx+cs*15},${cy}`;
+  const cc=one?`<circle cx="${cx+cs*15}" cy="${cy}" r="4.5" stroke="${clr}"/>`:'';
+  return`<g class="marks"><path stroke="${clr}" d="${parent}${child}"/>${pc}${cc}<text x="${px+ps*(opt?26:22)}" y="${py+(opt?21:-9)}" text-anchor="middle" fill="${clr}">${opt?'0..1':'1'}</text><text x="${cx+cs*(one?28:25)}" y="${cy-9}" text-anchor="middle" fill="${clr}">${one?'0..1':'N'}</text></g>`;
+}
+function drawWire(c,i,anim,done,dim){
+  const[p,ch,fk]=c.s[i],pa=pkOf(p),o=geom(p,pa,ch,fk),d=pathD(o),clr=col(p);
+  const g=document.createElementNS(NS,'g');g.setAttribute('class','wire'+(dim?' dim':''));
+  g.innerHTML=`<path class="glow" filter="url(#gl)" stroke="${clr}" d="${d}"/><path class="core" stroke="${clr}" d="${d}"/>${marks(o,clr,c)}`;
+  $('wires').appendChild(g);[rowEl(p,pa),rowEl(ch,fk)].forEach(r=>r&&r.classList.add('linked'));
+  const ends=()=>{if(anim){const r=document.createElementNS(NS,'circle');r.setAttribute('class','ring');r.setAttribute('cx',o.cx);r.setAttribute('cy',o.cy);r.setAttribute('r',4);r.setAttribute('stroke',clr);$('wires').appendChild(r);setTimeout(()=>r.remove(),650)}done&&done()};
+  if(!anim||RM){ends();return}
+  const ps=[...g.querySelectorAll('.core,.glow')],mk=g.querySelector('.marks'),L=ps[0].getTotalLength();
+  ps.forEach(q=>{q.style.strokeDasharray=L;q.style.strokeDashoffset=L});mk.style.opacity=0;
+  const ball=document.createElementNS(NS,'circle');ball.setAttribute('r',7);ball.setAttribute('fill','#fff');ball.setAttribute('stroke',clr);ball.setAttribute('stroke-width',4);$('wires').appendChild(ball);
+  const t0=performance.now(),D=650;
+  const step=t=>{const k=Math.min(1,(t-t0)/D),e=1-(1-k)**3,pt=ps[0].getPointAtLength(L*e);ball.setAttribute('cx',pt.x);ball.setAttribute('cy',pt.y);ps.forEach(q=>q.style.strokeDashoffset=L*(1-e));
+    if(k<1)requestAnimationFrame(step);else{ball.remove();ps.forEach(q=>{q.style.strokeDasharray='';q.style.strokeDashoffset=''});mk.style.opacity=1;ends()}};
+  requestAnimationFrame(step);
+}
+function misfire(pe,pa,ce,ca){const p=document.createElementNS(NS,'path');p.setAttribute('class','miss');p.setAttribute('d',pathD(geom(pe,pa,ce,ca)));$('wires').appendChild(p);setTimeout(()=>p.remove(),750)}
+function disarm(){if(st.armed){const r=rowEl(st.armed.e,st.armed.a);r&&r.classList.remove('armed');st.armed=null;const a=$('aim');a&&a.setAttribute('d','')}}
+
+/* ===== juego ===== */
+function err(){errs++;st.tries++;sBad();hud()}
+function reveal(c){
+  const left=keys(area).filter(x=>!isDone(x)).length;
+  say(`¿Por qué? ${c.why}${left?'':' Área completa: pulsa Siguiente para continuar.'}`,FRASE(c),'ok');
+}
+function afterConnect(c){
+  if(sd(c)<c.s.length){const nx=c.s[sd(c)];say(`Primer cable listo. Ahora conecta ${nx[0]} con la tabla intermedia ${c.br}.`,'','ok');return}
+  if(reto){st.wrong=new Set();say(`Cable conectado. Resuelve la cardinalidad: ¿cómo se relacionan ${ORIG(c)} y ${REL(c)}? Pregunta en los dos sentidos.`,'','ok')}
+  else{st.cd[c.n]=1;reveal(c)}
+}
+function fireStep(c,earned){
+  st.busy=true;disarm();sLaser();
+  drawWire(c,sd(c),true,()=>{st.busy=false;if(earned&&!st.tries)pts+=100;st.tries=0;st.sd[c.n]=sd(c)+1;sOk();afterConnect(c);renderRail();hud();updNext()});
+}
+function advance(){
+  if(st.busy)return true;const c=curConn();if(!c)return false;const s=curStep(c);
+  if(s.t==='connect'){st.tries=1;fireStep(c,false)}else onCard(c.k,false);
+  return true;
+}
+function onRow(e,a,k){
+  if(st.busy)return;const c=curConn();
+  if(!c){say('Esta área ya está completa. Pulsa Siguiente para continuar.');return}
+  const s=curStep(c),el=rowEl(e,a);
+  if(s.t!=='connect'){say('Primero resuelve la cardinalidad en el panel de la derecha.','','bad');sBad();return}
+  const[p,ch,fk]=s.s;
+  if(!k){flash(el,'bad',500);say(`${a} es un atributo descriptivo: no es una llave. Los cables nacen en la PK dorada.`,'','bad');sBad();return}
+  if(!st.armed){
+    if(k!=='pk'){err();flash(el,'bad',500);say(`${a} es una FK: es la copia que recibe la llave. El cable nace en la llave dorada PK de ${p}.`,'','bad');return}
+    if(e!==p){err();flash(el,'bad',500);say(`Esa es la PK de ${e}. En esta conexión el cable nace en ${p}.`,'','bad');return}
+    st.armed={e,a};el.classList.add('armed');beep(600,900,.12);
+    say(`Cable armado desde ${a}. Ahora haz clic en la FK que guarda esta misma llave en ${ch}.`);return;
+  }
+  if(e===st.armed.e&&a===st.armed.a){disarm();say('Cable desarmado.');return}
+  const f=st.armed;
+  if(k==='pk'){err();flash(el,'bad',500);misfire(f.e,f.a,e,a);say('PK con PK no se conecta. El cable debe llegar a una FK: la copia de la llave en la otra tabla.','','bad');return}
+  if(a!==fk){err();flash(el,'bad',500);misfire(f.e,f.a,e,a);say(`Esa FK guarda ${a}, no ${f.a}. La FK lleva el mismo nombre que la PK que viaja.`,'','bad');return}
+  if(e!==ch){err();flash(el,'bad',500);misfire(f.e,f.a,e,a);say(`${e} también tiene ${a}, pero esta conexión llega a ${ch}.`,'','bad');return}
+  fireStep(c,true);
+}
+function onCard(k,earned=true){
+  const c=curConn();if(!c||curStep(c).t!=='card')return;
+  if(k!==c.k){
+    err();st.wrong.add(k);renderRail();flash(document.querySelector(`#rail .opts button[data-c="${k}"]`),'no',500);
+    let m;
+    if(c.k==='N:M')m=k==='1:N'?`Pregunta en el otro sentido: un registro de ${REL(c)} también se relaciona con varios de ${ORIG(c)}. Por eso existe ${c.br}.`:`No es 1:1: ${ORIG(c)} se relaciona con varios registros de ${REL(c)}.`;
+    else if(c.k==='1:1')m='En este diseño un cliente puede tener como máximo una membresía Life: no hay «muchos» en ningún lado.';
+    else m=k==='1:1'?`No es 1:1: un registro de ${ORIG(c)} puede relacionarse con varios de ${REL(c)}.`:`No es N:M: cada registro de ${REL(c)} guarda un solo ${c.s[0][2]}, así que pertenece a un único ${c.s[0][0]}.`;
+    say(m,'','bad');return;
+  }
+  if(earned&&!st.tries)pts+=50;st.tries=0;st.cd[c.n]=1;sOk();reveal(c);renderRail();hud();updNext();
+}
+function hint(){
+  const c=curConn();if(!c){say('Área completa. Pulsa Siguiente.');return}
+  const s=curStep(c);
+  if(s.t==='card'){say(`Pista: ¿un registro de ${ORIG(c)} se relaciona con muchos de ${REL(c)}? ¿Y al revés? Si ambos son «muchos», es N:M.`);return}
+  const[p,ch,fk]=s.s;
+  if(!st.armed){flash(rowEl(p,pkOf(p)),'hint',3300);say(`Pista: la llave dorada de ${p} se llama ${pkOf(p)}. Está parpadeando.`)}
+  else{flash(rowEl(ch,fk),'hint',3300);say(`Pista: busca ${fk} dentro de ${ch}. Está parpadeando.`)}
+}
+function completeArea(){
+  if(st.busy)return;disarm();
+  keys(area).forEach(c=>{for(let i=sd(c);i<c.s.length;i++){drawWire(c,i,false);st.sd[c.n]=i+1}st.cd[c.n]=1});
+  renderRail();updNext();say(`Área ${area} completa: ${conns(area).length} conexiones en total.`,AR[area].close,'ok');
+}
+
+/* ===== mapa completo ===== */
+const MAPCOL=[['F'],['A'],['B'],['C','D'],['E']];
+const MORDER={A:['DESTINO','CATEGORIA_HOTEL','HOTEL','SERVICIO','OFERTA_SERVICIO_HOTEL','TIPO_HABITACION','HABITACION','FOTO_TIPO_HABITACION','EQUIPAMIENTO','ASIGNACION_EQUIPAMIENTO','TIPO_CAMA','COMPOSICION_CAMAS']};
+let MP={};
+function renderMap(){
+  area=null;MP={};$('wires').innerHTML=WDEF;let lab='';
+  MAPCOL.forEach((ars,ci)=>{
+    const x=10+ci*228,list=ars.flatMap(a=>(MORDER[a]||Object.keys(T).filter(n=>tAr(n)===a)).map(n=>[a,n]));
+    const gap=ars.length>1?26:0,step=Math.min(46,(530-gap)/list.length);let y=40;
+    list.forEach(([a,n],i)=>{if(i&&list[i-1][0]!==a)y+=gap;if(i===0||list[i-1][0]!==a)lab+=`<span class="alab" style="left:${x}px;top:${y-24}px;--k:${AR[a].c}">Área ${a}</span>`;MP[n]=[x,y];y+=step});
+  });
+  $('cards').innerHTML=lab+Object.entries(MP).map(([n,[x,y]])=>`<button class="chip" data-chip="${n}" style="left:${x}px;top:${y}px;--k:${col(n)}"><i></i>${n}</button>`).join('');
+  $('bnote').textContent='Haz clic en una tabla para resaltar sus conexiones.';
+  let h='';C.forEach(c=>c.s.forEach(([p,ch])=>{
+    const P=MP[p],Q=MP[ch];let ps,cs;
+    if(Q[0]>P[0]+5){ps=1;cs=-1}else if(Q[0]<P[0]-5){ps=-1;cs=1}else{ps=cs=-1}
+    const px=P[0]+(ps>0?190:0),py=P[1]+15,cx=Q[0]+(cs>0?190:0),cy=Q[1]+15,dx=ps===cs?22+Math.abs(cy-py)*.06:Math.max(20,Math.abs(cx-px)/2);
+    h+=`<path class="medge" data-p="${p}" data-c="${ch}" stroke="${col(p)}" d="M${px},${py} C${px+ps*dx},${py} ${cx+cs*dx},${cy} ${cx},${cy}"/>`;
+  }));
+  $('wires').insertAdjacentHTML('beforeend',h);applyMap();
+}
+function applyMap(){
+  document.querySelectorAll('.chip').forEach(ch=>{const n=ch.dataset.chip;ch.classList.toggle('off',!onA[tAr(n)]);ch.classList.toggle('sel',n===mapSel)});
+  document.querySelectorAll('.medge').forEach(e=>{const p=e.dataset.p,c=e.dataset.c,off=!onA[tAr(p)]||!onA[tAr(c)];e.classList.toggle('off',off);e.classList.toggle('hi',!!mapSel&&!off&&(p===mapSel||c===mapSel));e.classList.toggle('lo',!!mapSel&&!off&&p!==mapSel&&c!==mapSel)});
+}
+function mapClick(n){
+  mapSel=mapSel===n?null:n;applyMap();if(!mapSel){say('Selección borrada. Haz clic en otra tabla.');return}
+  const rel=[...new Set(C.flatMap(c=>c.s).filter(([p,ch])=>p===n||ch===n).map(([p,ch])=>p===n?ch:p))];
+  say(`${n} pertenece al área ${tAr(n)} (${AR[tAr(n)].n}) y se conecta con ${rel.length} tabla${rel.length===1?'':'s'}: ${rel.join(', ')}.`,`${n} se relaciona con ${rel.slice(0,3).join(', ')}${rel.length>3?' y otras':''}.`);
+}
+
+/* ===== normalización ===== */
+function normHTML(){
+  const q=NQ[ns.i],sv=ns.solved[ns.i],w=ns.wrong[ns.i],hit=q.hit||[q.a];
+  return`<div class="norm"><div>
+  <div class="tabs">${NQ.map((x,i)=>`<button data-t="${i}" class="${i===ns.i?'on':''} ${ns.solved[i]?'ok':''}">${x.fn}</button>`).join('')}</div>
+  <h2>${q.t}</h2>
+  <div class="scroll"><table><thead><tr>${q.cols.map(c=>`<th class="${sv&&hit.includes(c)?'hit':''}">${c}</th>`).join('')}</tr></thead><tbody>${q.rows.map(r=>`<tr>${r.map((v,i)=>`<td class="${sv&&hit.includes(q.cols[i])?'hit':''}">${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+  <p class="note">Datos de ejemplo para la demostración.</p>
+  <p class="nq">${q.q}</p>
+  <div class="nopts">${[...Object.keys(q.o),q.a].sort().map(o=>`<button data-o="${o}" class="${sv&&o===q.a?'ok':''}" ${sv||w.has(o)?'disabled':''}>${o===q.a&&q.hit?'datos del hotel ('+o+'…)':o}</button>`).join('')}</div>
+  </div><div class="nr">
+  <div class="box"><span class="tag">Regla · ${q.fn}</span><p>${q.rule}</p></div>
+  <div class="box fix ${sv?'okb':'locked'}"><span class="tag" style="background:${sv?'var(--ok)':'#ffffff30'}">Solución en nuestro modelo</span>${sv?q.fix:'<p>Responde la pregunta para desplegar la solución.</p>'}</div>
+  ${sv?(ns.i<NQ.length-1?`<button class="go" data-t="${ns.i+1}">Siguiente: ${NQ[ns.i+1].fn}</button>`:'<button class="go" data-go="next">Ir a la conclusión ›</button>'):''}
+  </div></div>`;
+}
+function onNorm(o,earned=true){
+  const q=NQ[ns.i];if(ns.solved[ns.i])return;
+  if(o!==q.a){errs++;sBad();ns.wrong[ns.i].add(o);$('html').innerHTML=normHTML();flash(document.querySelector(`.nopts button[data-o="${o}"]`),'no',500);say('No hubo normalización… todavía. '+q.o[o],'','bad');hud();return}
+  if(earned&&!ns.wrong[ns.i].size)pts+=100;ns.solved[ns.i]=1;sOk();$('html').innerHTML=normHTML();say(q.ok,q.ex,'ok');hud();updNext();
+}
+
+/* ===== paneles ===== */
+const legendHTML=`<div class="box legend"><span><svg viewBox="0 0 44 18"><path d="M2 9H42M8 2V16M14 2V16" stroke="#eef2ff" stroke-width="2" fill="none"/></svg>Uno y solo uno</span><span><svg viewBox="0 0 44 18"><path d="M2 9H42M26 9L42 1M26 9L42 17" stroke="#eef2ff" stroke-width="2" fill="none"/></svg>Muchos (pie de gallo)</span><span><svg viewBox="0 0 44 18"><path d="M2 9H42M8 2V16" stroke="#eef2ff" stroke-width="2" fill="none"/><circle cx="17" cy="9" r="4.5" stroke="#eef2ff" stroke-width="2" fill="#0c1330"/></svg>Opcional: cero o uno</span><span><b class="kb pfkb">PFK</b>PK y FK a la vez (clave compuesta)</span></div>`;
+function areaRail(){
+  const a=AR[area],cs=conns(area),ks=keys(area),c=curConn(),rest=cs.length-ks.length;
+  const per=`<div class="box persona" style="--k:${a.c}"><span class="av">${a.who[0]}</span><div><b>${a.who}</b><p>${a.scene}</p></div></div>`;
+  const ctrl=`<div class="ctrl"><button class="pri" data-act="adv">Disparar cable (→)</button><button data-act="hint">Pista</button><button data-act="all">Mostrar respuesta</button></div><label class="chk"><input type="checkbox" data-reto ${reto?'checked':''}> Modo reto: el público elige la cardinalidad</label>`;
+  if(!c)return per+`<div class="box"><div class="mrow"><span class="tag" style="background:var(--ok)">Área ${area} completa</span></div><p style="margin-top:8px">${a.close}</p><ul class="recap">${cs.map(x=>`<li class="${x.key?'kx':''}"><b>${x.key?'★':x.n}</b>${ORIG(x)} → ${REL(x)} · ${x.k}${x.opt?' (opcional)':''}</li>`).join('')}</ul><button class="go full" data-go="next">Siguiente ›</button></div>`+legendHTML;
+  const s=curStep(c),connected=sd(c)>=c.s.length,shown=connected&&st.cd[c.n];
+  const t=c.br?`${ORIG(c)} ⇄ ${REL(c)}`:`${ORIG(c)} → ${REL(c)}`;
+  return per+`<div class="box"><div class="mrow"><span class="tag" style="background:${a.c}">Conexión clave ${ks.indexOf(c)+1} de ${ks.length}</span><span class="mdots">${ks.map(x=>`<i class="${isDone(x)?'d':x===c?'c':''}"></i>`).join('')}</span></div><h2>${t}</h2>
+  <dl class="seq"><dt>ORIGEN</dt><dd>${ORIG(c)}</dd><dt>RELACIONADA</dt><dd>${REL(c)}${c.br?`<br><small style="color:var(--mute)">mediante ${c.br}</small>`:''}</dd><dt>ACCIÓN</dt><dd class="act">${c.act}</dd><dt>MOTIVO</dt><dd class="${shown?'why':'lock'}">${shown?c.why:'Se revela al conectar el cable.'}</dd></dl>
+  ${shown?`<div class="badges"><span class="k">${c.k.replace(':',' : ')}</span><span>mediante ${VIA(c)}</span>${c.opt?'<span>relación opcional</span>':''}</div>`:''}${rest?`<p class="dimnote">Las otras ${rest} conexiones ya están dibujadas.</p>`:''}</div>
+  ${s&&s.t==='card'?`<div class="box cq"><p>¿Cuál es la cardinalidad?</p><div class="opts">${['1:1','1:N','N:M'].map(k=>`<button data-c="${k}" ${st.wrong.has(k)?'disabled':''}>${k.replace(':',' : ')}</button>`).join('')}</div></div>`:''}`+ctrl;
+}
+const catsHTML=()=>`<details class="box cats" open><summary>Áreas del modelo</summary>${Object.entries(AR).map(([k,v])=>{const ts=Object.keys(T).filter(n=>tAr(n)===k);return`<details class="cat"><summary><input type="checkbox" data-ar="${k}" ${onA[k]?'checked':''} aria-label="Mostrar área ${k}"><span class="sw" style="background:${v.c}"></span>${k} · ${v.n} <span style="color:var(--mute);font-weight:400">(${ts.length})</span></summary><ul>${ts.map(n=>`<li>${n}</li>`).join('')}</ul></details>`}).join('')}</details>`;
+
+/* ===== diapositivas ===== */
+const art=()=>{
+  const ks=Object.keys(AR),mods=Array.from({length:18},(_,i)=>{const t=i/18*Math.PI*2;return{x:320+255*Math.cos(t),y:300+80*Math.sin(t),c:AR[ks[i%6]].c,f:Math.sin(t)>0}});
+  const md=f=>mods.filter(m=>m.f===f).map(m=>`<rect x="${(m.x-18).toFixed(0)}" y="${(m.y-12).toFixed(0)}" width="36" height="24" rx="6" fill="#0d1533" stroke="${m.c}" stroke-width="3"/><rect x="${(m.x-18).toFixed(0)}" y="${(m.y-12).toFixed(0)}" width="36" height="7" rx="3" fill="${m.c}"/>`).join('');
+  const links=mods.map((m,i)=>{const n=mods[(i+1)%18];return`<line x1="${m.x.toFixed(0)}" y1="${m.y.toFixed(0)}" x2="${n.x.toFixed(0)}" y2="${n.y.toFixed(0)}" stroke="${m.c}" stroke-width="2" opacity=".55"/>`}).join('');
+  return`<svg viewBox="0 0 640 560" aria-hidden="true"><defs><radialGradient id="cvp" cx=".32" cy=".3"><stop offset="0" stop-color="#7dd8ff"/><stop offset=".45" stop-color="#2d4fd0"/><stop offset="1" stop-color="#0a1040"/></radialGradient><radialGradient id="hal"><stop offset=".6" stop-color="#3fd0f5" stop-opacity=".25"/><stop offset="1" stop-color="#3fd0f5" stop-opacity="0"/></radialGradient></defs><g transform="rotate(-10 320 300)"><circle cx="320" cy="300" r="200" fill="url(#hal)"/><ellipse cx="320" cy="300" rx="255" ry="80" fill="none" stroke="#ffd24a" stroke-opacity=".35" stroke-width="2" stroke-dasharray="4 8"/>${links}${md(false)}<circle cx="320" cy="300" r="150" fill="url(#cvp)"/><path d="M200 250q120 40 240 -10M190 320q130 30 260 -5" stroke="#fff" stroke-opacity=".12" stroke-width="10" fill="none"/>${md(true)}<text x="320" y="312" text-anchor="middle" font-family="Orbitron" font-weight="800" font-size="40" fill="#fff" opacity=".9">36</text></g></svg>`;
+};
+const nota=(sym,svg)=>`<svg viewBox="0 0 440 70"><rect x="4" y="14" width="120" height="40" rx="8" fill="#0d1533" stroke="#3fd0f5" stroke-width="2.5"/><rect x="316" y="14" width="120" height="40" rx="8" fill="#0d1533" stroke="#ff7aa8" stroke-width="2.5"/>${svg}</svg>`;
+/* ===== notaciones ===== */
+const E1=(x,y,w,h,t,c='#3fd0f5')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#0d1533" stroke="${c}" stroke-width="2.5"/><text x="${x+w/2}" y="${y+h/2+5}" text-anchor="middle" fill="#eef2ff" font-size="13" font-weight="800">${t}</text>`;
+const DI=(x,y,hw,hh,t,c='#ff7aa8')=>`<polygon points="${x-hw},${y} ${x},${y-hh} ${x+hw},${y} ${x},${y+hh}" fill="#0d1533" stroke="${c}" stroke-width="2.5"/><text x="${x}" y="${y+5}" text-anchor="middle" fill="#eef2ff" font-size="13" font-weight="700">${t}</text>`;
+const NOT=[
+ {t:'Chen',s:'Peter Chen, 1976',svg:`<path d="M108 100H128M232 97H252M232 103H252" stroke="#eef2ff" stroke-width="2"/>${E1(8,80,100,40,'CLIENTE')}${DI(180,100,52,32,'realiza')}${E1(252,80,100,40,'RESERVA')}<text x="118" y="90" fill="#ffd24a" font-weight="800" font-size="15" text-anchor="middle">1</text><text x="242" y="90" fill="#ffd24a" font-weight="800" font-size="15" text-anchor="middle">N</text>`,l:'Rectángulo = entidad, rombo = relación, óvalo = atributo. La cardinalidad se escribe con 1, N o M; la línea doble indica participación total.',u:'Modelo conceptual: la primera idea del negocio.',say:'En Chen la relación es un rombo con un verbo, y la cardinalidad se escribe con letras: 1, N o M. La línea doble junto a RESERVA dice que toda reserva debe tener un cliente.'},
+ {t:'Pata de gallo',s:'Crow’s Foot · Everest, 1976 · notación IE',svg:`<path d="M118 100H242M128 88V112M136 88V112M242 88L224 100M242 100L224 100M242 112L224 100" stroke="#ffd24a" stroke-width="2.5" fill="none"/><circle cx="214" cy="100" r="6" stroke="#ffd24a" stroke-width="2.5" fill="#0c1330"/>${E1(8,80,110,40,'CLIENTE')}${E1(242,80,110,40,'RESERVA')}<text x="180" y="88" text-anchor="middle" fill="#a7b2da" font-size="13">realiza</text>`,l:'Cada extremo muestra mínimo y máximo: círculo = cero, barra = uno, pata de gallo = muchos.',u:'Modelo lógico y herramientas de diseño. Es la notación de nuestro diagrama.',say:'«Pata de gallo» y «Crow’s Foot» son la misma notación. Del lado de CLIENTE, dos barras: uno y solo uno. Del lado de RESERVA, círculo y pata: cero o muchas.'}
+];
+/* ===== Chen ===== */
+const SYMS=[
+ ['ent','Entidad','<rect x="4" y="5" width="36" height="16" fill="none" stroke="#3fd0f5" stroke-width="2"/>','Rectángulo: una entidad, algo del negocio de lo que guardamos datos. Ejemplo: CLIENTE, RESERVA, TARIFA, PAGO.'],
+ ['rel','Relación','<polygon points="4,13 22,3 40,13 22,23" fill="none" stroke="#ff7aa8" stroke-width="2"/>','Rombo: una relación, nombrada con un verbo. Ejemplo: CLIENTE realiza RESERVA.'],
+ ['attr','Atributo','<ellipse cx="22" cy="13" rx="18" ry="9" fill="none" stroke="#a7b2da" stroke-width="2"/>','Óvalo: un atributo, una característica de la entidad. Ejemplo: fecha_entrada, monto_pagado.'],
+ ['clave','Atributo clave','<ellipse cx="22" cy="13" rx="18" ry="9" fill="none" stroke="#ffd24a" stroke-width="2"/><path d="M13 16H31" stroke="#ffd24a" stroke-width="2"/>','Atributo subrayado: clave primaria, identifica cada registro. Ejemplo: id_cliente. En tablas es la PK.'],
+ ['relattr','Atributo de relación','<ellipse cx="22" cy="13" rx="18" ry="9" fill="none" stroke="#ffc847" stroke-width="2"/>','cantidad_adultos, cantidad_ninos y subtotal pertenecen a «contiene», no a RESERVA ni a TARIFA. En tablas, esa relación N:M se convierte en SELECCION_HABITACION.'],
+ ['total','Participación total','<path d="M3 10H41M3 16H41" stroke="#eef2ff" stroke-width="2"/>','Línea doble: participación total. Toda RESERVA debe tener un CLIENTE y todo PAGO, una RESERVA.'],
+ ['card','Cardinalidad 1, N, M','<text x="22" y="18" text-anchor="middle" fill="#ffd24a" font-weight="800" font-size="14">1 N M</text>','Las letras sobre las líneas son la cardinalidad. «contiene» es N:M: una reserva tiene varias tarifas y una tarifa aparece en varias reservas.']
+];
+const CHEN={
+ ents:[['CLIENTE',130,260],['RESERVA',520,260],['TARIFA',930,260],['PAGO',520,500]],weak:[],
+ rels:[['realiza',325,260],['contiene',725,260],['recibe',520,385]],relid:[],
+ attrs:[['id_cliente',65,160,'clave',130,260],['nombres',205,150,'attr',130,260],['correo',110,385,'attr',130,260],['id_reserva',430,160,'clave',520,260],['fecha_entrada',520,90,'attr',520,260],['fecha_salida',375,375,'attr',520,260],['cantidad_adultos',650,160,'relattr',725,260],['cantidad_ninos',760,90,'relattr',725,260],['subtotal',860,165,'relattr',725,260],['id_tarifa',1020,158,'clave',930,260],['nombre_tarifa',930,385,'attr',930,260],['id_pago',370,520,'clave',520,500],['monto_pagado',680,520,'attr',520,500]],
+ links:[[205,260,263,260,0,'1',232,248],[387,260,445,260,1,'N',418,248],[595,260,663,260,0,'N',626,248],[787,260,855,260,0,'M',822,248],[520,285,520,349,0,'1',536,322],[520,421,520,475,1,'N',536,455]]
+};
+function chenSVG(){
+  const C2=CHEN,rxOf=t=>Math.max(34,t.length*4.6+16),g=(s,b)=>`<g class="sym" data-sym="${s}">${b}</g>`;
+  let back=C2.attrs.map(a=>`<line x1="${a[1]}" y1="${a[2]}" x2="${a[4]}" y2="${a[5]}" stroke="#5b6694" stroke-width="1.6"/>`).join('');
+  back+=C2.links.map(l=>l[4]?g('total',l[0]===l[2]?`<path d="M${l[0]-3},${l[1]}V${l[3]}M${l[0]+3},${l[1]}V${l[3]}" stroke="#eef2ff" stroke-width="2"/>`:`<path d="M${l[0]},${l[1]-3}H${l[2]}M${l[0]},${l[1]+3}H${l[2]}" stroke="#eef2ff" stroke-width="2"/>`):`<line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" stroke="#eef2ff" stroke-width="2"/>`).join('');
+  const ent=C2.ents.map(([t,x,y])=>g('ent',`<rect x="${x-75}" y="${y-25}" width="150" height="50" rx="4" fill="#0d1533" stroke="#3fd0f5" stroke-width="2.5"/><text x="${x}" y="${y+6}" text-anchor="middle" class="ct">${t}</text>`)).join('');
+  const weak=C2.weak.map(([t,x,y])=>g('debil',`<rect x="${x-80}" y="${y-27}" width="160" height="54" rx="4" fill="#0d1533" stroke="#3fd0f5" stroke-width="2.5"/><rect x="${x-74}" y="${y-21}" width="148" height="42" rx="3" fill="none" stroke="#3fd0f5" stroke-width="1.8"/><text x="${x}" y="${y+6}" text-anchor="middle" class="ct">${t}</text>`)).join('');
+  const rel=C2.rels.map(([t,x,y])=>g('rel',`<polygon points="${x-62},${y} ${x},${y-36} ${x+62},${y} ${x},${y+36}" fill="#0d1533" stroke="#ff7aa8" stroke-width="2.5"/><text x="${x}" y="${y+5}" text-anchor="middle" class="cr">${t}</text>`)).join('');
+  const relid=C2.relid.map(([t,x,y])=>g('relid',`<polygon points="${x-62},${y} ${x},${y-36} ${x+62},${y} ${x},${y+36}" fill="#0d1533" stroke="#ff7aa8" stroke-width="2.5"/><polygon points="${x-52},${y} ${x},${y-29} ${x+52},${y} ${x},${y+29}" fill="none" stroke="#ff7aa8" stroke-width="1.8"/><text x="${x}" y="${y+5}" text-anchor="middle" class="cr">${t}</text>`)).join('');
+  const att=C2.attrs.map(([t,x,y,s])=>{const rx=rxOf(t),stc=s==='relattr'?'#ffc847':s==='clave'?'#ffd24a':'#a7b2da',w=t.length*7.4;
+    const shape=s==='multi'?`<ellipse cx="${x}" cy="${y}" rx="${rx+5}" ry="25" fill="#0d1533" stroke="${stc}" stroke-width="2"/><ellipse cx="${x}" cy="${y}" rx="${rx}" ry="19" fill="none" stroke="${stc}" stroke-width="1.6"/>`:`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="21" fill="#0d1533" stroke="${stc}" stroke-width="2"${s==='deriv'?' stroke-dasharray="6 4"':''}/>`;
+    const ul=s==='clave'?`<path d="M${x-w/2},${y+8}H${x+w/2}" stroke="#ffd24a" stroke-width="1.6"/>`:s==='parcial'?`<path d="M${x-w/2},${y+8}H${x+w/2}" stroke="#eef2ff" stroke-width="1.6" stroke-dasharray="4 3"/>`:'';
+    return g(s,shape+`<text x="${x}" y="${y+5}" text-anchor="middle" class="ca">${t}</text>`+ul)}).join('');
+  const card=C2.links.map(l=>g('card',`<text x="${l[6]}" y="${l[7]}" text-anchor="middle" class="cc2">${l[5]}</text>`)).join('');
+  return`<svg class="chen" viewBox="0 0 1100 570" role="img" aria-label="Fragmento del modelo en notación de Chen">${back}${att}${ent}${weak}${rel}${relid}${card}</svg>`;
+}
+function hlSym(s){
+  document.querySelectorAll('.chen .sym').forEach(x=>x.classList.toggle('hl',x.dataset.sym===s));
+  document.querySelectorAll('.symlist button').forEach(x=>x.classList.toggle('on',x.dataset.sym===s));
+  const it=SYMS.find(x=>x[0]===s);if(it)say(it[3],it[3].split('. ')[0].replace(/\.$/,'')+'.');
+}
+/* ===== pata de gallo ===== */
+const CF=(min,max)=>{
+  const mx=max==='1'?'<path d="M188 22V50" />':'<path d="M204 24L186 36M204 36H186M204 48L186 36"/>';
+  const mn=min==='0'?'<circle cx="174" cy="36" r="7" fill="#0c1330"/>':`<path d="M${max==='1'?178:178} 22V50"/>`;
+  return`<svg viewBox="0 0 300 72"><g stroke="#ffd24a" stroke-width="3" fill="none"><path d="M20 36H204"/>${mx}${mn}</g><rect x="204" y="16" width="90" height="40" rx="6" fill="#0d1533" stroke="#3fd0f5" stroke-width="2.5"/><text x="249" y="41" text-anchor="middle" fill="#eef2ff" font-size="13" font-weight="800">ENTIDAD</text></svg>`;
+};
+const CROW=[
+ ['Uno y solo uno','mínimo 1 · máximo 1',CF('1','1'),'Cada HOTEL pertenece a un solo DESTINO.','Dos barras: uno y solo uno. Visto desde HOTEL, siempre hay exactamente un DESTINO.'],
+ ['Cero o uno','mínimo 0 · máximo 1',CF('0','1'),'Una RESERVA usa cero o una PROMOCION.','Círculo y barra: cero o uno. Es una relación opcional: la reserva puede no tener promoción.'],
+ ['Uno o muchos','mínimo 1 · máximo N',CF('1','N'),'Una RESERVA contiene una o varias SELECCIONES de habitación.','Barra y pata de gallo: uno o muchos. Una reserva tiene al menos una habitación seleccionada.'],
+ ['Cero o muchos','mínimo 0 · máximo N',CF('0','N'),'Una MEMBRESIA_LIFE acumula cero o muchos MOVIMIENTOS de puntos.','Círculo y pata de gallo: cero o muchos. Un socio recién inscrito todavía no tiene movimientos.']
+];
+const areaSlide=(k,who,t)=>({short:`Área ${k}`,sec:`Área ${k} · ${Object.keys(T).filter(n=>tAr(n)===k).length} tablas`,sk:AR[k].c,title:AR[k].n,board:'area',ar:k,rail:areaRail,
+ enter:()=>{preDone(k);renderArea(k);const c=curConn();if(c)say(`${AR[k].scene} Pulsa → para disparar la conexión clave.`,`${AR[k].who} entra al área de ${AR[k].n.toLowerCase()}.`);else say(AR[k].close,'','ok');return true},
+ notes:{who,t,pts:[AR[k].scene,...keys(k).map(c=>`→ disparar ${ORIG(c)} → ${REL(c)} (${c.k}${c.opt?', opcional':''}) y leer la idea clave.`),'Lo demás ya está dibujado: no explicarlo.'],key:FRASE(keys(k)[0]),q:AR[k].q,a:AR[k].a}});
+const X={F:[['RESERVA_RESTAURANTE tiene id_zona e id_tipo_reserva por separado. ¿Garantiza que ambos sean del mismo restaurante?','No: es una limitación que reconocemos. Hoy se controla en la aplicación; una mejora sería agregar id_restaurante con claves foráneas compuestas.']],E:[['MOVIMIENTO_PUNTOS tiene id_reserva e id_canje. ¿No es redundante?','Ambas FK admiten NULL y se usan en casos distintos: id_reserva cuando los puntos se ganan por una estadía e id_canje cuando se descuentan por un canje. Una mejora sería una restricción que impida llenar las dos a la vez.']]};
+const S=[
+ {short:'Portada',sec:'Grupo 5 · Tecsup 2026',title:'',wide:true,
+  html:()=>`<div class="cover"><div><p class="kick">Trabajo final de Base de Datos</p><h1 class="big">Misión <span>Casa Andina</span></h1><p class="lead">Modelo relacional V5.4: 36 tablas en 6 áreas</p><p class="meta">Grupo 5 · Tecnología Digital – Diseño y Desarrollo de Software</p><button class="go" data-go="next">Iniciar misión ›</button></div>${art()}</div>`,
+  say:['Aquí NOVA, copiloto del Grupo 5. Seguiremos a cuatro clientes por la web de Casa Andina.','Somos el Grupo 5 y presentamos cómo se conectan las tablas de Casa Andina.'],
+  notes:{who:'Expositor 1',t:'20 s',pts:['Saludar y presentar al Grupo 5.','Tema: modelo relacional de Casa Andina (V5.4).'],key:'Somos el Grupo 5 y presentamos cómo se conectan las tablas de Casa Andina.'}},
+ {short:'Introducción',sec:'Introducción',title:'36 tablas en seis áreas',wide:true,
+  html:()=>`<div class="intro"><p class="lead2">Cada tabla almacena una parte de la información y se relaciona con otras. Cuando un cliente busca un hotel, elige una habitación y reserva, no interviene una sola tabla: participan varias que se conectan.</p><div class="areas">${Object.entries(AR).map(([k,v])=>{const ts=Object.keys(T).filter(n=>tAr(n)===k).length,cs=conns(k);return`<button class="ac" style="--k:${v.c}" data-area="${k}"><i>${k}</i><h3>${v.n}</h3><p>${ts} tablas · ${keys(k).length} ${keys(k).length>1?'conexiones clave':'conexión clave'}</p><small>Historia: ${v.who}</small></button>`}).join('')}</div><div class="flow"><b>Cómo explicaremos cada conexión</b><span>Tabla de origen</span><span>Tabla relacionada</span><span>Acción del cliente</span><span>Motivo de la conexión</span></div></div>`,
+  say:['Seis áreas, una conexión clave en cada una: origen, tabla relacionada, acción del cliente y motivo.','Nuestro modelo tiene 36 tablas en seis áreas.'],
+  notes:{who:'Expositor 1',t:'40 s',pts:['36 tablas en seis áreas.','Seguiremos a María, Carlos, Lucía y Pedro.'],key:'Nuestro modelo tiene 36 tablas en seis áreas.',q:'¿Cómo decidieron las áreas?',a:'Por las funciones de la web de Casa Andina: hoteles, reservas, pagos, promociones, Life y restaurantes.'}},
+ {short:'Notaciones',sec:'Simbología',title:'Dos notaciones: Chen y pata de gallo',wide:true,
+  html:()=>`<div class="nots"><div class="ng two">${NOT.map((n,i)=>`<button class="np" data-nt="${i}"><h3>${n.t}</h3><small>${n.s}</small><svg viewBox="0 0 360 180">${n.svg}</svg><p>${n.l}</p><p class="use">${n.u}</p></button>`).join('')}</div><div class="cg">${CROW.map((c,i)=>`<button class="gc" data-man="${i}"><h3>${c[0]}</h3>${c[2]}<p>${c[3]}</p></button>`).join('')}</div><div class="trick"><b>Las dos dicen lo mismo:</b> un cliente realiza cero o muchas reservas, y cada reserva la realiza un solo cliente. Chen es el modelo conceptual (lo pide el informe); pata de gallo es el lógico, con tablas, PK y FK (nuestro diagrama). En pata de gallo, el símbolo pegado a la entidad es el máximo y el de afuera, el mínimo.</div></div>`,
+  say:['La misma relación en dos notaciones. Abajo, los cuatro símbolos de la pata de gallo.','Chen muestra la idea; la pata de gallo, las tablas.'],
+  notes:{who:'Expositor 1',t:'1 min',pts:['Chen: rectángulo = entidad, rombo = relación con verbo, óvalo = atributo.','Pata de gallo: pegado a la tabla = máximo; afuera = mínimo; círculo = opcional.'],key:'Chen muestra la idea; la pata de gallo, las tablas.',q:'¿Por qué usaron pata de gallo?',a:'Porque el modelo ya está en tablas con PK y FK; con 36 tablas es más legible. Chen va en el informe.'}},
+ areaSlide('A','Expositor 1','50 s'),
+ areaSlide('B','Expositor 1','50 s'),
+ areaSlide('C','Expositor 2','30 s'),
+ areaSlide('D','Expositor 2','40 s'),
+ areaSlide('E','Expositor 2','40 s'),
+ areaSlide('F','Expositor 2','40 s'),
+ {short:'Normalización',sec:'Normalización',title:'Normalización: 1FN, 2FN y 3FN',wide:true,
+  html:normHTML,enter:()=>{say('¡Houston, tenemos un problema: no hubo normalización! Si todo estuviera en una sola tabla, repetiríamos datos. Revisemos 1FN, 2FN y 3FN. Pulsa → para revelar cada respuesta.','Cada dato se guarda una sola vez, en la tabla a la que pertenece.','bad');return true},
+  notes:{who:'Expositor 2',t:'1 min',pts:['→ revela cada respuesta.','1FN: un valor por celda. 2FN: depende de toda la clave. 3FN: nada depende de un no clave.'],key:'Cada dato se guarda una sola vez, en la tabla a la que pertenece.',q:'¿Por qué no una sola tabla?',a:'Repetiríamos datos: el hotel se escribiría en cada reserva. Se guarda una vez en HOTEL y se conecta con id_hotel.'}},
+ {short:'Conclusión',sec:'Aterrizaje',title:'Conclusiones',wide:true,
+  html:()=>`<div class="end solo"><div><ul class="ticks"><li>Lo importante no es la cantidad de tablas, sino cómo se relacionan para representar lo que hace el cliente.</li><li>Cada acción —reservar, pagar, usar una promoción, acumular puntos o reservar una mesa— activa tablas conectadas por PK y FK.</li><li>Las relaciones N:M se resolvieron con tablas intermedias, y la normalización hasta la 3FN evita repetir datos.</li><li>Organizar el modelo en seis áreas lo hace más fácil de entender, mantener y ampliar.</li></ul><p class="sign">Grupo 5 · Tecsup 2026</p></div></div>`,
+  say:['Misión cumplida: las funciones de la web de Casa Andina quedaron representadas en un modelo relacional.','Un buen modelo guarda cada dato una vez y lo conecta donde se necesita.','ok'],
+  notes:{who:'Expositor 2',t:'30 s',pts:['Leer las cuatro conclusiones.','Cerrar con la idea clave.'],key:'Un buen modelo guarda cada dato una vez y lo conecta donde se necesita.'}}
+];
+
+/* ===== render ===== */
+function hud(){$('num').textContent=`${cur+1} / ${S.length}`}
+function renderRail(){const s=S[cur];$('rail').innerHTML=s.rail?s.rail():''}
+function updNext(){
+  const s=S[cur];let t='Siguiente ›';
+  if(s.board==='area'&&curConn()){const c=curConn(),x=curStep(c);t=x.t==='card'?'Revelar cardinalidad ›':`Disparar conexión clave ›`}
+  if(s.html===normHTML){t=!ns.solved[ns.i]?'Revelar respuesta ›':ns.i<NQ.length-1?`Siguiente: ${NQ[ns.i+1].fn} ›`:'Siguiente ›'}
+  $('next').textContent=t;$('next').disabled=cur===S.length-1&&!(s.board==='area'&&curConn());
+}
+function renderNotes(){
+  const n=S[cur].notes;
+  $('notes').innerHTML=`<button class="xclose" data-act="closeNotes">Cerrar</button><div><div class="nmeta"><span>Diapositiva ${cur+1}: ${S[cur].short}</span><span>Tiempo: ${n.t}</span></div><h3>Puntos</h3><ul style="${n.pts.length>6?'font-size:16px;gap:3px':''}">${n.pts.map(p=>`<li>${p}</li>`).join('')}</ul></div><div><h3>Frase clave</h3><div class="key">«${n.key}»</div>${n.q?`<h3>Preguntas frecuentes</h3><div class="qa"><b>${n.q}</b><br>${n.a}</div>`:''}${(n.x||[]).map(([q,a])=>`<div class="qa"><b>${q}</b><br>${a}</div>`).join('')}</div>`;
+}
+function render(){
+  const s=S[cur];visited.add(cur);disarm();
+  $('main').classList.toggle('wide',!!s.wide);
+  $('sec').textContent=s.sec;$('sec').style.setProperty('--sk',s.sk||'');$('title').textContent=s.title;
+  $('boardBox').hidden=!s.board;$('html').hidden=!!s.board;
+  $('html').innerHTML=s.html?s.html():'';
+  const spoke=s.enter?s.enter():false;
+  renderRail();renderNotes();hud();updNext();
+  if(!spoke&&s.say)say(...s.say);
+  $('dots').innerHTML=S.map((x,i)=>`<button class="dot ${i===cur?'on':visited.has(i)?'v':''}" data-i="${i}" aria-label="Diapositiva ${i+1}: ${x.short}" title="${i+1}. ${x.short}"></button>`).join('');
+  $('prev').disabled=cur===0;
+}
+function go(i){
+  i=Math.max(0,Math.min(S.length-1,i));if(i===cur)return;cur=i;
+  try{history.replaceState(null,'','#d'+(i+1))}catch(e){}
+  render();
+}
+function normAdv(){if(!ns.solved[ns.i]){onNorm(NQ[ns.i].a,false);return true}if(ns.i<NQ.length-1){ns.i++;$('html').innerHTML=normHTML();say(`Inspección ${NQ[ns.i].fn}: ${NQ[ns.i].q}`);updNext();return true}return false}
+function next(){if(S[cur].board==='area'&&advance())return;if(S[cur].html===normHTML&&normAdv())return;go(cur+1)}
+function fit(){const k=Math.min(innerWidth/1600,innerHeight/900);$('frame').style.setProperty('--k',k)}
+addEventListener('resize',fit);
+
+/* ===== eventos ===== */
+$('frame').addEventListener('click',e=>{
+  const t=e.target.closest('[data-go],[data-act],[data-i],[data-c],[data-man],[data-nt],[data-sym],[data-t],[data-o],[data-area],[data-chip]');if(!t)return;
+  const d=t.dataset;
+  if(d.go==='next')go(cur+1);
+  else if(d.i!==undefined)go(+d.i);
+  else if(d.c){if(!t.disabled)onCard(d.c)}
+  else if(d.man!==undefined){document.querySelectorAll('.gc').forEach(x=>x.classList.toggle('sel',x===t));const i=+d.man,X=[['Cómo se lee','El símbolo pegado a la entidad es el máximo y el de afuera, el mínimo. Del lado de RESERVA: círculo y pata, cero o muchas. Del lado de CLIENTE: dos barras, uno y solo uno.'],['N:M','En pata de gallo no existe la línea muchos a muchos: se crea una tabla intermedia, como SELECCION_HABITACION entre RESERVA y TARIFA, con una relación 1:N hacia cada lado.'],['Identificadora','Si la FK forma parte de la clave primaria de la tabla hija, la relación es identificadora y se dibuja con línea continua; si la FK es un atributo más, es no identificadora y se dibuja punteada.']];if(i<4){const c=CROW[i];say(c[4],`${c[0]}: ${c[3]}`)}else{const x=X[i-4];say(x[1],x[0]+': '+x[1].split('. ')[0]+'.')}}
+  else if(d.nt!==undefined){document.querySelectorAll('.np').forEach(x=>x.classList.toggle('sel',x===t));const n=NOT[+d.nt];say(n.say,`${n.t}: ${n.l.split('. ')[0].replace(/\.$/,'')}.`)}
+  else if(d.sym)hlSym(d.sym)
+  else if(d.area){go(S.findIndex(s=>s.ar===d.area))}
+  else if(d.chip)mapClick(d.chip);
+  else if(d.t!==undefined){ns.i=+d.t;$('html').innerHTML=normHTML();const q=NQ[ns.i];say(ns.solved[ns.i]?q.ok:`Inspección ${q.fn}: ${q.q}`,ns.solved[ns.i]?q.ex:'',ns.solved[ns.i]?'ok':'info');updNext()}
+  else if(d.o){if(!t.disabled)onNorm(d.o)}
+  else if(d.act==='adv'){if(!advance())say('Área completa. Pulsa Siguiente para continuar.')}
+  else if(d.act==='hint'){if(S[cur].html===normHTML)say(NQ[ns.i].hint);else hint()}
+  else if(d.act==='all')completeArea();
+  else if(d.act==='closeNotes')$('notes').hidden=true;
+});
+$('rail').addEventListener('change',e=>{
+  if(e.target.dataset.ar){onA[e.target.dataset.ar]=e.target.checked?1:0;applyMap()}
+  else if(e.target.hasAttribute('data-reto')){reto=e.target.checked;say(reto?'Modo reto activado: después de cada cable, el público elegirá la cardinalidad.':'Modo reto desactivado: la cardinalidad se revela sola.')}
+});
+$('cards').addEventListener('click',e=>{
+  if(S[cur].board!=='area')return;const h=e.target.closest('[data-head]');if(h){const n=h.dataset.head,all=T[n][2];say(`${n} (${all.length} atributos): ${all.map(r=>r[0]+(r[1]==='pk'?' (PK)':r[1]==='pfk'?' (PK, FK)':r[1]==='fk'?' (FK)':'')+(r[2]==='n'?' NULL':'')+(r[2]==='u'?' único':'')).join(', ')}.`);return}const r=e.target.closest('.row');if(!r)return;onRow(r.dataset.e,r.dataset.a,r.dataset.k);
+});
+$('board').addEventListener('pointermove',e=>{
+  if(!st.armed||!area)return;const r=$('board').getBoundingClientRect(),k=r.width/BW,x=(e.clientX-r.left)/k,y=(e.clientY-r.top)/k,P=LAY[area][st.armed.e];
+  const right=x>P[0]+CW/2,px=P[0]+(right?CW:0),py=rowY(st.armed.e,st.armed.a),dd=right?1:-1;
+  $('aim').setAttribute('d',`M${px},${py} C${px+dd*50},${py} ${x-dd*30},${y} ${x},${y}`);
+});
+$('prev').addEventListener('click',()=>go(cur-1));
+$('next').addEventListener('click',next);
+const toggleNotes=()=>{$('notes').hidden=!$('notes').hidden};
+$('bNotes').addEventListener('click',toggleNotes);
+const full=()=>{try{const p=document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();p&&p.catch&&p.catch(()=>say('El visor no permitió la pantalla completa. Usa F11 en el navegador.'))}catch(e){say('El visor no permitió la pantalla completa. Usa F11 en el navegador.')}};
+$('bFull').addEventListener('click',full);
+$('bReset').addEventListener('click',()=>{pts=0;errs=0;onA={A:1,B:1,C:1,D:1,E:1,F:1};fresh();const c=cur;cur=-1;go(c);say('Misión reiniciada. Todos los cables y respuestas volvieron a cero.')});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'&&e.target.type!=='checkbox')return;const k=e.key;
+  if(k==='ArrowRight'||k==='PageDown'){e.preventDefault();next()}
+  else if(k==='ArrowLeft'||k==='PageUp'){e.preventDefault();go(cur-1)}
+  else if(k==='g'||k==='G')toggleNotes();
+  else if(k==='f'||k==='F')full();
+  else if(k==='Escape'){if(!$('notes').hidden)$('notes').hidden=true;else disarm()}
+  else if(k==='Home')go(0);else if(k==='End')go(S.length-1);
+});
+
+fit();
+const h=/^#d(\d+)$/.exec(location.hash);cur=-1;go(h?Math.max(0,Math.min(S.length-1,+h[1]-1)):0);
+}
+</script>
+</body>
+</html>
